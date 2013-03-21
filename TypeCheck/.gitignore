@@ -1,2 +1,5 @@
 *Javalette*
-ErrM.hs
+ErrM.*
+*.hi
+*.o
+TypeCheck
