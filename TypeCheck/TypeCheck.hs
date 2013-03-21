@@ -12,7 +12,7 @@ import PrintJavalette
 import AbsJavalette
 
 
-
+import TypeChecker
 
 import ErrM
 
