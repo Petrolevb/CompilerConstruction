@@ -4,30 +4,30 @@ import LexJavalette
 import ParJavalette
 import AbsJavalette
 
-data AnotatedProgram = AnotatedProgram [AnotatedTopDef]
+data AnnotatedProgram = AnnotatedProgram [AnnotatedTopDef]
     deriving (Eq, Ord, Show)
 
-data AnotatedTopDef = 
-    FnDef Type Ident [Arg] AnotatedBlock
+data AnnotatedTopDef = 
+    FnDef Type Ident [Arg] AnnotatedBlock
     deriving (Eq, Ord, Show)
 
-data AnotatedBlock = 
-    AnotatedBlock [AnotatedStmt]
+data AnnotatedBlock = 
+    AnnotatedBlock [AnnotatedStmt]
     deriving (Eq, Ord, Show)
 
-data AnotatedStmt = 
+data AnnotatedStmt = 
       Empty
-    | BStmt AnotatedBlock
+    | BStmt AnnotatedBlock
     | Decl Type [Item]
-    | Ass Ident AnotatedExp
+    | Ass Ident AnnotatedExp
     | Incr Ident
     | Decr Ident
-    | Ret AnotatedExp
+    | Ret AnnotatedExp
     | VRet
-    | Cond AnotatedExp AnotatedStmt
-    | CondElse AnotatedExp AnotatedStmt AnotatedStmt
-    | While AnotatedExp AnotatedStmt
-    | SExp AnotatedExp
+    | Cond AnnotatedExp AnnotatedStmt
+    | CondElse AnnotatedExp AnnotatedStmt AnnotatedStmt
+    | While AnnotatedExp AnnotatedStmt
+    | SExp AnnotatedExp
     deriving (Eq, Ord, Show)
 
-type AnotatedExp = (Expr, Type) 
+type AnnotatedExp = (Expr, Type) 

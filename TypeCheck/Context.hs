@@ -5,6 +5,8 @@ import LexJavalette
 import ParJavalette
 import ErrM
 
+import Control.Monad.State
+
 -- Signature is the name of the function and list of types
 type Signature = (Ident, FunType)
 type FunType   = ([(Type,Ident)], Type)
@@ -12,6 +14,9 @@ type FunType   = ([(Type,Ident)], Type)
 -- Env is a stack of context and the function initialisation
 type Env     = (Signature, [Context], [Signature])
 type Context = [(Type, Ident)]
+
+-- Monad Stat for the environment
+type ErrTypeCheck a = StateT Env Err a
 
 
 extendVar :: Env -> Ident -> Type -> Err Env
