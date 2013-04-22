@@ -80,22 +80,42 @@ checkStmt (AbsJavalette.BStmt block)               = do
     return (AnotatedAbs.BStmt anoBlock)
 
 checkStmt (AbsJavalette.Decl typeDecl items)       = undefined
-checkStmt (AbsJavalette.Ass ident expr)            = undefined
+checkStmt (AbsJavalette.Ass ident expr)            = do
+    typeExpr <- infer expr
+    anoExp <- checkExp expr
+    env <- get
+    case lookupVar ident env of
+        Bad s1 -> case lookupInFun ident env of
+            Bad s2 -> fail (s1 ++ " " ++ s2)
+            Ok   t -> if t == typeExpr 
+                        then return (AnotatedAbs.Ass ident anoExp) 
+                        else fail ("Type Error: " ++ show ident ++ "=" ++ show expr)
+        Ok   t -> if t == typeExpr 
+                    then return (AnotatedAbs.Ass ident anoExp) 
+                    else fail ("Type Error: " ++ show ident ++ "=" ++ show expr)
 
 checkStmt (AbsJavalette.Incr ident)                = do
     env <- get
     case lookupVar ident env of
         Bad s1 -> case lookupInFun ident env of
             Bad s2 -> fail (s1 ++ " " ++ s2)
-            Ok   t -> if t == Int then return (AnotatedAbs.Incr ident) else fail ("Type Error: " ++ show ident ++ "++")
-        Ok   t -> if t == Int then return (AnotatedAbs.Incr ident) else fail ("Type Error: " ++ show ident ++ "++")
+            Ok   t -> if t == Int 
+                        then return (AnotatedAbs.Incr ident) 
+                        else fail ("Type Error: " ++ show ident ++ "++")
+        Ok   t -> if t == Int 
+                    then return (AnotatedAbs.Incr ident) 
+                    else fail ("Type Error: " ++ show ident ++ "++")
 checkStmt (AbsJavalette.Decr ident)                = do
     env <- get
     case lookupVar ident env of
         Bad s1 -> case lookupInFun ident env of
             Bad s2 -> fail (s1 ++ " " ++ s2)
-            Ok   t -> if t == Int then return (AnotatedAbs.Decr ident) else fail ("Type Error: " ++ show ident ++ "++")
-        Ok   t -> if t == Int then return (AnotatedAbs.Decr ident) else fail ("Type Error: " ++ show ident ++ "++")
+            Ok   t -> if t == Int 
+                        then return (AnotatedAbs.Decr ident) 
+                        else fail ("Type Error: " ++ show ident ++ "++")
+        Ok   t -> if t == Int 
+                    then return (AnotatedAbs.Decr ident) 
+                    else fail ("Type Error: " ++ show ident ++ "++")
 
 checkStmt (AbsJavalette.Ret expr)                  = do
     anoExpr <- checkExp expr
@@ -117,4 +137,5 @@ checkStmt (AbsJavalette.While expr stmt)           = do
 checkExp :: Expr -> ErrTypeCheck AnotatedExp
 checkExp = undefined
 
-
+infer :: Expr -> ErrTypeCheck Type
+infer = undefined
