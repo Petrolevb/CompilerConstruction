@@ -49,6 +49,8 @@ checkBlock (Block stmts) = do
     env <- get
     put $ newBlock env
     anoStmts <- checkStmts stmts
+    toUpdate <- get
+    put $ removeBlock toUpdate
     return (AnotatedBlock anoStmts)
 
 
@@ -71,6 +73,34 @@ check fun env =
 
 
 checkStmt :: Stmt -> ErrTypeCheck AnotatedStmt
-checkStmt = undefined
+checkStmt  AbsJavalette.Empty                      = return AnotatedAbs.Empty
+checkStmt (AbsJavalette.VRet)                      = return AnotatedAbs.VRet
+checkStmt (AbsJavalette.BStmt block)               = do
+    anoBlock <- checkBlock block
+    return (AnotatedAbs.BStmt anoBlock)
+
+checkStmt (AbsJavalette.Decl typeDecl items)       = undefined
+checkStmt (AbsJavalette.Ass ident expr)            = undefined
+checkStmt (AbsJavalette.Incr ident)                = do
+    env <- get
+    case lookupVar ident env of
+        Bad s1 -> case lookupInFun ident env of
+            Bad s2 -> fail (s1 ++ " " ++ s2)
+            Ok   t -> if t == Int then return (AnotatedAbs.Incr ident) else fail ("Type Error: " ++ show ident ++ "++")
+        Ok   t -> if t == Int then return (AnotatedAbs.Incr ident) else fail ("Type Error: " ++ show ident ++ "++")
+checkStmt (AbsJavalette.Decr ident)                = do
+    env <- get
+    case lookupVar ident env of
+        Bad s1 -> case lookupInFun ident env of
+            Bad s2 -> fail (s1 ++ " " ++ s2)
+            Ok   t -> if t == Int then return (AnotatedAbs.Decr ident) else fail ("Type Error: " ++ show ident ++ "++")
+        Ok   t -> if t == Int then return (AnotatedAbs.Decr ident) else fail ("Type Error: " ++ show ident ++ "++")
+checkStmt (AbsJavalette.Ret expr)                  = undefined
+checkStmt (AbsJavalette.Cond expr stmt)            = undefined
+checkStmt (AbsJavalette.CondElse expr stmt1 stmt2) = undefined
+checkStmt (AbsJavalette.While expr stmt)           = undefined
+
+checkExp :: Expr -> ErrTypeCheck AnotatedExp
+checkExp = undefined
 
 
