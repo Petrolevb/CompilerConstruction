@@ -8,6 +8,7 @@ import ErrM
 import Control.Monad.State
 
 import AnnotatedAbs
+import TCheck
 
 import Context
 import BuildEnv
@@ -152,9 +153,3 @@ checkStmt (AbsJavalette.While expr stmt)           = do
 checkStmt (AbsJavalette.SExp expr) = do
     anoExpr <- checkExp expr
     return (AnotatedAbs.SExp anoExpr)
-
-checkExp :: Expr -> ErrTypeCheck AnotatedExp
-checkExp = undefined
-
-infer :: Expr -> ErrTypeCheck Type
-infer = undefined
