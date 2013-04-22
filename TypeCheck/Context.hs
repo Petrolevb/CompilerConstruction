@@ -31,6 +31,9 @@ emptyEnv = (((Ident "main"), ([], Int)), [], [])
 newBlock :: Env -> Env
 newBlock (s, c, ss) = (s, []:c, ss)
 
+removeBlock :: Env -> Env
+removeBlock (s, (_:c), ss) = (s, c, ss)
+
 funToSign :: TopDef -> (Signature, Block)
 funToSign (FnDef typeFun name args stms) = ((name, (fromArgs args, typeFun)), stms)
     where fromArgs = map (\(Arg ty id) -> (ty, id)) 
@@ -64,3 +67,7 @@ lookupFun id (_, _, sigs)      = lookInSigs id sigs
 getFunType :: Env -> Err Type
 getFunType (sig, _, _) = Ok $ getFromSig sig
     where getFromSig (_, (_, typeFun) ) = typeFun
+
+
+updateSignature :: Env -> Signature -> Env
+updateSignature (_, cs, ss) s = (s, cs, ss)
