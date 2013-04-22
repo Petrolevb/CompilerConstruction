@@ -71,6 +71,19 @@ check fun env =
         Ok _ -> return ()
 
 
+checkItem :: Type -> Item -> ErrTypeCheck ()
+checkItem typeItem (NoInit ident)   = do
+    env <- get
+    case extendVar env ident typeItem of
+        Ok newEnv -> do 
+            put newEnv 
+            return ()
+        Bad     s -> fail s
+checkItem typeItem (Init ident exp) = do
+    typeExp <- infer exp 
+    if typeExp == typeItem 
+        then checkItem typeItem (NoInit ident) -- same case
+        else fail ("Type Error: " ++ show ident ++ "=" ++ show exp)
 
 checkStmt :: Stmt -> ErrTypeCheck AnotatedStmt
 checkStmt  AbsJavalette.Empty                      = return AnotatedAbs.Empty
@@ -79,7 +92,10 @@ checkStmt (AbsJavalette.BStmt block)               = do
     anoBlock <- checkBlock block
     return (AnotatedAbs.BStmt anoBlock)
 
-checkStmt (AbsJavalette.Decl typeDecl items)       = undefined
+checkStmt (AbsJavalette.Decl typeDecl items)       = do
+    sequence $ map (checkItem typeDecl) items -- update env
+    return (AnotatedAbs.Decl typeDecl items)
+
 checkStmt (AbsJavalette.Ass ident expr)            = do
     typeExpr <- infer expr
     anoExp <- checkExp expr
