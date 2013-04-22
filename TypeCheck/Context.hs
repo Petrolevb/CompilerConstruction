@@ -64,3 +64,7 @@ lookupFun id (_, _, sigs)      = lookInSigs id sigs
 getFunType :: Env -> Err Type
 getFunType (sig, _, _) = Ok $ getFromSig sig
     where getFromSig (_, (_, typeFun) ) = typeFun
+
+
+updateSignature :: Env -> Signature -> Env
+updateSignature (_, cs, ss) s = (s, cs, ss)
