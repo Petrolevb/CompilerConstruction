@@ -30,9 +30,31 @@ anotateCheckProg (Program topdefs) = do
     newTopDefs <- sequence $ map typedefs topdefs
     return $ AnotatedProgram  newTopDefs
 
-typedefs :: TopDef -> ErrTypeCheck AnotatedTopDef
-typedefs = undefined
 
+
+typedefs :: TopDef -> ErrTypeCheck AnotatedTopDef
+typedefs td = do
+    env <- get
+    put $ updateSignature env ((\(s, _) -> s) (funToSign td))
+    checkTopDef td
+
+checkTopDef :: TopDef -> ErrTypeCheck AnotatedTopDef
+checkTopDef (AbsJavalette.FnDef t i args block) = do
+    anoBlock <- checkBlock block
+    return (AnotatedAbs.FnDef t i args anoBlock)
+
+
+checkBlock :: Block -> ErrTypeCheck AnotatedBlock
+checkBlock (Block stmts) = do
+    env <- get
+    put $ newBlock env
+    anoStmts <- checkStmts stmts
+    return (AnotatedBlock anoStmts)
+
+
+checkStmts :: [Stmt] -> ErrTypeCheck [AnotatedStmt]
+checkStmts stmts = sequence $ map checkStmt stmts
+-- checkStmt is the last function of this file
 
 -- Check if the function main is part of the environment
 checkMain :: ErrTypeCheck ()
@@ -48,18 +70,7 @@ check fun env =
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+checkStmt :: Stmt -> ErrTypeCheck AnotatedStmt
+checkStmt = undefined
 
 
