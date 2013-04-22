@@ -61,6 +61,9 @@ tokenPos (PT (Pn _ l _) _ :_) = "line " ++ show l
 tokenPos (Err (Pn _ l _) :_) = "line " ++ show l
 tokenPos _ = "end of file"
 
+tokenPosn (PT p _) = p
+tokenPosn (Err p) = p
+tokenLineCol = posLineCol . tokenPosn
 posLineCol (Pn _ l c) = (l,c)
 mkPosToken t@(PT p _) = (posLineCol p, prToken t)
 

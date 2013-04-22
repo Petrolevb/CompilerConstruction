@@ -67,6 +67,9 @@ tokenPos (PT (Pn _ l _) _ :_) = "line " ++ show l
 tokenPos (Err (Pn _ l _) :_) = "line " ++ show l
 tokenPos _ = "end of file"
 
+tokenPosn (PT p _) = p
+tokenPosn (Err p) = p
+tokenLineCol = posLineCol . tokenPosn
 posLineCol (Pn _ l c) = (l,c)
 mkPosToken t@(PT p _) = (posLineCol p, prToken t)
 
@@ -178,7 +181,6 @@ alex_action_7 =  tok (\p s -> PT p (TI $ share s))
 alex_action_8 =  tok (\p s -> PT p (TD $ share s)) 
 {-# LINE 1 "templates/GenericTemplate.hs" #-}
 {-# LINE 1 "templates/GenericTemplate.hs" #-}
-{-# LINE 1 "<built-in>" #-}
 {-# LINE 1 "<command-line>" #-}
 {-# LINE 1 "templates/GenericTemplate.hs" #-}
 -- -----------------------------------------------------------------------------
