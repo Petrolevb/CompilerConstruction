@@ -11,7 +11,7 @@ import SkelJavalette
 import PrintJavalette
 import AbsJavalette
 
-import AnotatedAbs
+import AnnotatedAbs
 import TypeChecker
 
 import ErrM

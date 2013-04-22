@@ -7,7 +7,7 @@ import AbsJavalette
 import ErrM
 import Control.Monad.State
 
-import AnotatedAbs
+import AnnotatedAbs
 
 import Context
 import BuildEnv

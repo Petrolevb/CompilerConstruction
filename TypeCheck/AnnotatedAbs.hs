@@ -1,4 +1,4 @@
-module AnotatedAbs where
+module AnnotatedAbs where
 
 import LexJavalette
 import ParJavalette
