@@ -25,8 +25,8 @@ extendVar (s, [], sigs) id ty =
         Bad _ -> Ok (s, [[(ty, id)]], sigs)
         Ok  _ -> Bad "Variable already exist in signature"
 
-emptyEnv :: Signature -> Env
-emptyEnv s = (s, [], [])
+emptyEnv :: Env
+emptyEnv = (((Ident "main"), ([], Int)), [], [])
 
 newBlock :: Env -> Env
 newBlock (s, c, ss) = (s, []:c, ss)

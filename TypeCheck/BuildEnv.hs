@@ -6,12 +6,6 @@ import AbsJavalette
 import PrintJavalette
 import ErrM
 
--- Create an env with a function
-buildEnvOnTopDef :: TopDef -> [Signature] -> Env
-buildEnvOnTopDef fun signs = addIOFun $ addListSigns (emptyEnv signature) signs
-    where 
-          (signature, _) = funToSign fun
-          addListSigns (s, c, ss) ss2 = (s, c, ss++ss2)
 addIOFun :: Env -> Env
 addIOFun env = extendFun 
                 (extendFun 
