@@ -149,6 +149,9 @@ checkStmt (AbsJavalette.While expr stmt)           = do
     anoExpr <- checkExp expr
     anoStmt <- checkStmt stmt
     return (AnotatedAbs.While anoExpr anoStmt)
+checkStmt (AbsJavalette.SExp expr) = do
+    anoExpr <- checkExp expr
+    return (AnotatedAbs.SExp anoExpr)
 
 checkExp :: Expr -> ErrTypeCheck AnotatedExp
 checkExp = undefined
