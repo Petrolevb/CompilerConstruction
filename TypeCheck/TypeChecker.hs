@@ -79,7 +79,7 @@ checkItem typeItem (NoInit ident)   = do
             return ()
         Bad     s -> fail s
 checkItem typeItem (Init ident exp) = do
-    (_, typeExp) <- infer exp 
+    typeExp <- infer exp 
     if typeExp == typeItem 
         then checkItem typeItem (NoInit ident) -- same case
         else fail ("Type Error: " ++ show ident ++ "=" ++ show exp)
@@ -96,7 +96,7 @@ checkStmt (AbsJavalette.Decl typeDecl items)       = do
     return (AnnotatedAbs.Decl typeDecl items)
 
 checkStmt (AbsJavalette.Ass ident expr)            = do
-    (_, typeExpr) <- infer expr
+    typeExpr <- infer expr
     annoExp <- checkExp expr typeExpr
     env <- get
     case lookupVar ident env of
@@ -133,26 +133,26 @@ checkStmt (AbsJavalette.Decr ident)                = do
                     else fail ("Type Error: " ++ show ident ++ "++")
 
 checkStmt (AbsJavalette.Ret expr)                  = do
-    (_, t) <- infer expr
+    t <- infer expr
     annoExpr <- checkExp expr t
     return (AnnotatedAbs.Ret annoExpr)
 checkStmt (AbsJavalette.Cond expr stmt)            = do
-    (_, t) <- infer expr
+    t <- infer expr
     annoExpr <- checkExp expr t
     annoStmt <- checkStmt stmt
     return (AnnotatedAbs.Cond annoExpr annoStmt)
 checkStmt (AbsJavalette.CondElse expr stmt1 stmt2) = do
-    (_, t) <- infer expr
+    t <- infer expr
     annoExpr <- checkExp expr t
     s1 <- checkStmt stmt1
     s2 <- checkStmt stmt2
     return (AnnotatedAbs.CondElse annoExpr s1 s2)
 checkStmt (AbsJavalette.While expr stmt)           = do
-    (_, t) <- infer expr
+    t <- infer expr
     annoExpr <- checkExp expr t
     annoStmt <- checkStmt stmt
     return (AnnotatedAbs.While annoExpr annoStmt)
 checkStmt (AbsJavalette.SExp expr) = do
-    (_, t) <- infer expr
+    t <- infer expr
     annoExpr <- checkExp expr t
     return (AnnotatedAbs.SExp annoExpr)
