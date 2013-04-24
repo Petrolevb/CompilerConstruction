@@ -14,6 +14,18 @@ returnCode = liftIO.(appendFile "a.out")
 getType :: AnnotatedExp -> Type
 getType = snd
 
+getLetterFromType :: Type -> Char
+getLetterFromType t = case t of
+    Int -> 'I'
+    Doub -> 'D'
+    Void -> 'V'
+    Bool -> 'I'
+
+getLettersArgs :: [Arg] -> String
+getLettersArgs  = map (\(Arg typeA _) -> getLetterFromType typeA)
+
+getLocalaStackSize :: AnnotatedBlock -> (Int, Int)
+getLocalaStackSize = (0, 0)
 
 generation :: AnnotatedProgram -> IO ()
 generation = undefined
@@ -22,7 +34,12 @@ genTopDef :: AnnotatedTopDef -> GenState ()
 genTopDef (TYP.FnDef typeFn ident args block) = do
     env <- get
     put $ addArgs (addFunc env ident) args
-    returnCode "invokestatic"
+    let (local, stack) = getLocalaStackSize block
+    returnCode $ ".method public static " ++ (getNameFunc env) 
+    returnCode $ "(" ++ (getLettersArgs args) ++ ")" ++ (getLetterFromType typeFn) : "\n" 
+    returnCode $ ".limit locals " ++ (show local) ++ "\n"
+    returnCode $ ".limit stack " ++ (show stack) ++ "\nentry:\n" 
+    genBlock block
 
 
 genBlock :: AnnotatedBlock -> GenState ()
