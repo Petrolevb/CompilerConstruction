@@ -48,7 +48,7 @@ checkExp (Not e) Bool         = do
          te <- infer e
          typeResult (te == Bool)
          return (Not e, Bool)
-checkExp (EMul e1 op e2) t    = do
+checkExp (EMul e1 op e2) t    = 
          case op of
               Mod -> do te1 <- checkList e1 e2 [Int]
                         typeResult (te1 == t)
@@ -95,9 +95,9 @@ infer (ELitDoub d)   = return Doub
 infer (EVar id)      = do
       env <- get
       case lookupVar id env of
-           Bad _ -> do case lookupInFun id env of
-                            Bad _ -> return Void
-                            Ok tId  -> return tId
+           Bad _ -> case lookupInFun id env of
+                         Bad _   -> return Void
+                         Ok  tId -> return tId
            Ok tId  -> return tId
 infer (EApp id exos) = do
       env <- get
@@ -113,20 +113,15 @@ infer (Not e)     = do
       te <- infer e
       typeResult (te == Bool)
       return Bool
-infer (EMul e1 op e2) = do
+infer (EMul e1 op e2) = 
       case op of
            Mod -> do checkList e1 e2 [Int]
                      return Int
-           _   -> do te1 <- checkList e1 e2 [Int, Doub]
-                     return te1
-infer (EAdd e1 op e2) = do
-      te1 <- checkList e1 e2 [Int, Doub]
-      return te1
+           _   -> checkList e1 e2 [Int, Doub]
+infer (EAdd e1 op e2) = checkList e1 e2 [Int, Doub]
 infer (ERel e1 op e2) = do
       checkList e1 e2 [Bool]
       return Bool
-infer (EAnd e1 e2) = do
-      checkBool e1 e2
-infer (EOr e1 e2)  = do
-      checkBool e1 e2
+infer (EAnd e1 e2) = checkBool e1 e2
+infer (EOr e1 e2)  = checkBool e1 e2
 

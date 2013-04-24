@@ -26,7 +26,7 @@ annotateCheckProg (Program topdefs) = do
     env <- get
     put $ createEnv env topdefs
     checkMain
-    newTopDefs <- sequence $ map typedefs topdefs
+    newTopDefs <- mapM typedefs topdefs
     return $ AnnotatedProgram  newTopDefs
 
 
@@ -34,7 +34,7 @@ annotateCheckProg (Program topdefs) = do
 typedefs :: TopDef -> ErrTypeCheck AnnotatedTopDef
 typedefs td = do
     env <- get
-    put $ updateSignature env ((\(s, _) -> s) (funToSign td))
+    put $ updateSignature env (fst (funToSign td))
     checkTopDef td
 
 checkTopDef :: TopDef -> ErrTypeCheck AnnotatedTopDef
@@ -54,7 +54,7 @@ checkBlock (Block stmts) = do
 
 
 checkStmts :: [Stmt] -> ErrTypeCheck [AnnotatedStmt]
-checkStmts stmts = sequence $ map checkStmt stmts
+checkStmts = mapM checkStmt 
 -- checkStmt is the last function of this file
 
 -- Check if the function main is part of the environment
@@ -92,7 +92,7 @@ checkStmt (AbsJavalette.BStmt block)               = do
     return (AnnotatedAbs.BStmt annoBlock)
 
 checkStmt (AbsJavalette.Decl typeDecl items)       = do
-    sequence $ map (checkItem typeDecl) items -- update env
+    mapM_ (checkItem typeDecl) items -- update env
     return (AnnotatedAbs.Decl typeDecl items)
 
 checkStmt (AbsJavalette.Ass ident expr)            = do
