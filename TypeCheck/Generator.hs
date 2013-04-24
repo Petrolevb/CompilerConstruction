@@ -91,10 +91,12 @@ genStmt (TYP.CondElse exp s1 s2)  = do
     let lab2 = (getLabel newEnv)
     put $ incrLabel newEnv
     genExp exp
+    returnCode $ " " ++ lab1 ++ "\n" -- if true jump lab1, else continue
+    genStmt s2
+    returnCode $ "goto " ++ lab2 ++ "\n"
     returnCode $ lab1 ++ ":\n" 
     genStmt s1
     returnCode $ lab2 ++ ":\n" 
-    genStmt s2
 
 genStmt (TYP.While exp stmt)          = do
     env <- get 
@@ -106,6 +108,7 @@ genStmt (TYP.While exp stmt)          = do
     genStmt stmt
     returnCode $ lab2 ++ ":\n" 
     genExp exp
+    returnCode $ " " ++ lab1 ++"\n" -- finish on an if (theorically)
 genStmt (TYP.SExp exp)                = genExp exp
 
 
@@ -160,11 +163,31 @@ genExp (EAdd e1 Minus e2, typeExp)  = do
         Int  -> returnCode "isub"
         Doub -> returnCode "dsub"
 
-genExp (ERel e1 LTH e2, typeExp)  = undefined
-genExp (ERel e1 LE e2, typeExp)   = undefined
-genExp (ERel e1 GTH e2, typeExp)  = undefined
-genExp (ERel e1 GE e2, typeExp)   = undefined
-genExp (ERel e1 EQU e2, typeExp)  = undefined
-genExp (ERel e1 NE e2, typeExp)   = undefined
+genExp (ERel e1 LTH e2, typeExp)  = case typeExp of
+    Int  -> genCondition typeExp e1 e2 "if_icmplt"
+    Doub -> undefined
+genExp (ERel e1 LE e2, typeExp)   = case typeExp of
+    Int  -> genCondition typeExp e1 e2 "if_icmple"
+    Doub -> undefined
+genExp (ERel e1 GTH e2, typeExp)  = case typeExp of
+    Int  -> genCondition typeExp e1 e2 "if_icmpgt"
+    Doub -> undefined
+genExp (ERel e1 GE e2, typeExp)   = case typeExp of
+    Int  -> genCondition typeExp e1 e2 "if_icmpge"
+    Doub -> undefined
+genExp (ERel e1 EQU e2, typeExp)  = case typeExp of
+    Int  -> genCondition typeExp e1 e2 "if_icmpeq"
+    Doub -> undefined
+genExp (ERel e1 NE e2, typeExp)   = case typeExp of
+    Int  -> genCondition typeExp e1 e2 "if_icmpne"
+    Doub -> undefined
 
 genExp (EAnd e1 e2, typeExp)      = undefined
+genExp (EOr e1 e2, typeExp)       = undefined
+
+genCondition :: Type -> Expr -> Expr -> String -> GenState ()
+genCondition t e1 e2 s = do
+    genExp (e1, t)
+    genExp (e2, t)
+    returnCode s
+
