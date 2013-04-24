@@ -23,9 +23,16 @@ genBlock = undefined
 
 genStmt :: AnnotatedStmt -> GenState ()
 genStmt TYP.Empty                 = return ""
-genStmt (TYP.BStmt block)         = undefined
+genStmt (TYP.BStmt block)         = genBlock block
 genStmt (TYP.Decl typeDecl items) = undefined
-genStmt (TYP.Ass ident exp)       = undefined
+genStmt (TYP.Ass ident exp)       = do
+    genExp exp
+    env <- get
+    let (typ, pos) = getMemory env ident
+    case typ of
+        Int  -> return "istore " ++ show pos
+        Bool -> return "istore " ++ show pos
+        Doub -> return "dstore " ++ show pos
     -- 
 
 genStmt (TYP.Incr ident)          = do
@@ -59,18 +66,30 @@ genStmt (TYP.CondElse exp s1 s2)  = do
     put $ incrLabel newEnv
     return $ (genExp exp) ++ lab1 ++ ":\n" ++ (genStmt s1) ++ lab2 ++ ":\n" ++ (genStmt s2)
 
-genStmt (While exp stmt)          = undefined
+genStmt (While exp stmt)          = do
+    env <- get 
+    let lab1 = (getLabel env)
+    let newEnv = incrLabel env
+    let lab2 = (getLabel newEnv)
+    put $ incrLabel newEnv
+    return $ "goto " ++ lab2 ++ "\n" ++ lab1 ++ ":\n" ++ (genStmt stmt) ++ lab2 ++ ":\n" ++ (genExp exp)
 genStmt (SExp exp)                = genExp exp
 
 
 
 
 genExp :: AnnotatedExp -> GenState ()
-genExp (EVar ident, typeExp)        = undefined
-genExp (ELitInt int, typeExp)       = undefined
-genExp (ELitDoub double, typeExp)   = undefined
-genExp (ELitTrue, typeExp)          = undefined
-genExp (ELitFalse, typeExp)         = undefined
+genExp (EVar ident, typeExp)        = do
+    env <- get
+    let pos = snd $ getMemory env ident
+    case typeExp of
+        Int  -> return $ "iload " ++ show pos
+        Bool -> return $ "iload " ++ show pos
+        Doub -> return $ "dload " ++ show pos
+genExp (ELitInt int, _)             = return $ "iconst " ++ show int
+genExp (ELitDoub double, _)         = return $ "dconst " ++ show dpibme
+genExp (ELitTrue, _)                = return "iconst_1"
+genExp (ELitFalse, _)               = return "iconst_0"
 genExp (EApp ident exprs, typeExp)  = undefined
 genExp (EString string, typeExp)    = undefined
 genExp (Neg expr, typeExp)          = undefined
