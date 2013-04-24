@@ -18,26 +18,24 @@ import ErrM
 
 type ParseFun a = [Token] -> Err a
 
-myLLexer = myLexer
-
 type Verbosity = Int
 
 putStrV :: Verbosity -> String -> IO ()
 putStrV v s = if v > 1 then putStrLn s else return ()
 
-runFile :: (Print a, Show a) => Verbosity -> ParseFun a -> FilePath -> IO ()
+runFile :: Verbosity -> ParseFun Program -> FilePath -> IO ()
 runFile v p f = putStrLn f >> readFile f >>= run v p
 
-run :: (Print a, Show a) => Verbosity -> ParseFun a -> String -> IO ()
-run v p s = let ts = myLLexer s in case p ts of
+run :: Verbosity -> ParseFun Program -> String -> IO ()
+run v p s = 
+    case p (myLexer s) of
            Bad s    -> do putStrLn "\nParse              Failed...\n"
-                          putStrV v "Tokens:"
-                          putStrV v $ show ts
                           putStrLn s
            Ok  tree -> do putStrLn "\nParse Successful!"
+                          case typecheck tree of
+                            Bad s  -> putStrV v $ "\nFail to anotate : " ++ s 
+                            Ok at  -> putStrV v $ show at
                           showTree v tree
-
-
 
 showTree :: (Show a, Print a) => Int -> a -> IO ()
 showTree v tree

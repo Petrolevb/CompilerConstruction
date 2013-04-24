@@ -1,5 +1,6 @@
 all:
 	bnfc Javalette.cf
+	rm TestJavalette.hs
 	happy -gca ParJavalette.y
 	alex -g LexJavalette.x
 	ghc --make TypeCheck.hs -o TypeCheck
