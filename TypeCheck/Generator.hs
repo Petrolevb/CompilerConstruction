@@ -12,15 +12,17 @@ generation :: AnnotatedProgram -> IO ()
 generation = undefined
 
 genTopDef :: AnnotatedTopDef -> GenState ()
-genTopDef = undefined
+genTopDef (TYP.FnDef typeFn ident args block) = do
+    env <- get
+    put $ addArgs (addFunc env ident) args
+    return "invokestatic"
+
 
 genBlock :: AnnotatedBlock -> GenState ()
 genBlock = undefined
 
 genStmt :: AnnotatedStmt -> GenState ()
-genStmt TYP.Empty                 = do
-    env <- get 
-    fail "Empty branch exist in " ++ (getNameFunc env)
+genStmt TYP.Empty                 = return ""
 genStmt (TYP.BStmt block)         = undefined
 genStmt (TYP.Decl typeDecl items) = undefined
 genStmt (TYP.Ass ident exp)       = undefined
@@ -28,23 +30,33 @@ genStmt (TYP.Ass ident exp)       = undefined
 
 genStmt (TYP.Incr ident)          = do
     env <- get
-    return $  "iinc" ++  show (getMemory env ident) ++ "1"
+    return $  "iinc" ++  (show (snd (getMemory env ident))) ++ "1"
 genStmt (TYP.Decr ident)          = do
     env <- get
-    return $ putStrLn.show $ "iinc" ++  show (getMemory env ident) ++ "(-1)"
+    return $ putStrLn.show $ "iinc" ++  (show (snd (getMemory env ident))) ++ "(-1)"
 
 
 genStmt (TYP.Ret exp)             = do
     genExp exp
-    return "ireturn"
+    case (getType exp) of
+        Int  -> return "ireturn"
+        Bool -> return "ireturn"
+        Doub -> return "dreturn"
+            where getType = snd
+        
 genStmt TYP.VRet                  = return "ireturn"
 genStmt (TYP.Cond exp stmt)       = do
     env <- get
     return $ (genExp exp) ++ (getLabel env) ++ ":\n" ++ (gentStmt stmt) 
+genStmt (TYP.CondElse exp s1 TYP.Empty)  = do
+    env <- get
+    fail "Empty branch exist in " ++ (getNameFunc env) ++ " in a if else statement"
 genStmt (TYP.CondElse exp s1 s2)  = do
-    env <-get 
+    env <- get 
     let lab1 = (getLabel env)
-    let lab2 = (getLabel env)
+    let newEnv = incrLabel env
+    let lab2 = (getLabel newEnv)
+    put $ incrLabel newEnv
     return $ (genExp exp) ++ lab1 ++ ":\n" ++ (genStmt s1) ++ lab2 ++ ":\n" ++ (genStmt s2)
 
 genStmt (While exp stmt)          = undefined
