@@ -28,8 +28,8 @@ getNameFunc ((Ident func), _, _) = func
 getLabel :: GenContext -> String
 getLabel ((Ident f), c, _) = f ++ "_" ++ show c
 -- get a label with the name of the current function and a counter
-incrLabelEnv :: GenContext -> GenContext
-incrLabelEnv (f, c, mv) = (f, c+1, mv)
+incrLabel :: GenContext -> GenContext
+incrLabel (f, c, mv) = (f, c+1, mv)
 
 
 
