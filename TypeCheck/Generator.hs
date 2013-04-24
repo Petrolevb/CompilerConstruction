@@ -18,10 +18,13 @@ genBlock :: AnnotatedBlock -> GenState ()
 genBlock = undefined
 
 genStmt :: AnnotatedStmt -> GenState ()
-genStmt TYP.Empty                 = undefined
+genStmt TYP.Empty                 = do
+    env <- get 
+    fail "Empty branch exist in " ++ (getNameFunc env)
 genStmt (TYP.BStmt block)         = undefined
 genStmt (TYP.Decl typeDecl items) = undefined
 genStmt (TYP.Ass ident exp)       = undefined
+    -- 
 
 genStmt (TYP.Incr ident)          = do
     env <- get
@@ -31,10 +34,23 @@ genStmt (TYP.Decr ident)          = do
     return $ putStrLn.show $ "iinc" ++  show (getMemory env ident) ++ "(-1)"
 
 
-genStmt (TYP.Ret exp)             = undefined
-genStmt TYP.VRet                  = undefined
-genStmt (TYP.Cond exp stmt)       = undefined
-genStmt (TYP.CondElse exp s1 s2)  = undefined
+genStmt (TYP.Ret exp)             = do
+    genExp exp
+    return "ireturn"
+genStmt TYP.VRet                  = return "ireturn"
+genStmt (TYP.Cond exp stmt)       = do
+    env <- get
+    return $ (genExp exp) ++ (getLabel env) ++ ":\n" ++ (gentStmt stmt) 
+genStmt (TYP.CondElse exp s1 s2)  = do
+    env <-get 
+    let lab1 = (getLabel env)
+    let lab2 = (getLabel env)
+    return $ (genExp exp) ++ lab1 ++ ":\n" ++ (genStmt s1) ++ lab2 ++ ":\n" ++ (genStmt s2)
+
+genStmt (While exp stmt)          = undefined
+genStmt (SExp exp)                = genExp exp
+
+
 
 
 genExp :: AnnotatedExp -> GenState ()
