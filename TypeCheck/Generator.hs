@@ -22,8 +22,15 @@ genStmt TYP.Empty                 = undefined
 genStmt (TYP.BStmt block)         = undefined
 genStmt (TYP.Decl typeDecl items) = undefined
 genStmt (TYP.Ass ident exp)       = undefined
-genStmt (TYP.Incr ident)          = undefined
-genStmt (TYP.Decr ident)          = undefined
+
+genStmt (TYP.Incr ident)          = do
+    env <- get
+    return $  "iinc" ++  show (getMemory env ident) ++ "1"
+genStmt (TYP.Decr ident)          = do
+    env <- get
+    return $ putStrLn.show $ "iinc" ++  show (getMemory env ident) ++ "(-1)"
+
+
 genStmt (TYP.Ret exp)             = undefined
 genStmt TYP.VRet                  = undefined
 genStmt (TYP.Cond exp stmt)       = undefined
@@ -42,17 +49,17 @@ genExp (Neg expr, typeExp)          = undefined
 genExp (Not expr, typeExp)          = undefined
 
 genExp (EMul e1 Times e2, typeExp)  = undefined
-genExp (EMul e1 Div e2, typeExp)  = undefined
-genExp (EMul e1 Mod e2, typeExp)  = undefined
+genExp (EMul e1 Div e2, typeExp)    = undefined
+genExp (EMul e1 Mod e2, typeExp)    = undefined
 
-genExp (EAdd e1 Plus e2, typeExp)  = undefined
+genExp (EAdd e1 Plus e2, typeExp)   = undefined
 genExp (EAdd e1 Minus e2, typeExp)  = undefined
 
 genExp (ERel e1 LTH e2, typeExp)  = undefined
-genExp (ERel e1 LE e2, typeExp)  = undefined
+genExp (ERel e1 LE e2, typeExp)   = undefined
 genExp (ERel e1 GTH e2, typeExp)  = undefined
-genExp (ERel e1 GE e2, typeExp)  = undefined
+genExp (ERel e1 GE e2, typeExp)   = undefined
 genExp (ERel e1 EQU e2, typeExp)  = undefined
-genExp (ERel e1 NE e2, typeExp)  = undefined
+genExp (ERel e1 NE e2, typeExp)   = undefined
 
-genExp (EAnd e1 e2, typeExp)        = undefined
+genExp (EAnd e1 e2, typeExp)      = undefined
