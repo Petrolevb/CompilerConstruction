@@ -23,23 +23,25 @@ checkExp (EVar      id) t    = do
          tId <- infer (EVar id)
          typeResult (tId == t)
          return (EVar id, t)
-checkExp (EApp id exp) t    = undefined {- do
+checkExp (EApp id exp) t    = do
          env <- get
-         (tysids,typeFun) <- lookupFun id env
-         -- Function return same type as requested
-         typeResult (t == typeFun)
-         -- Same number of argument as requested
-         typeResult (length exp == length tysids)
-         checkAllArgs tysids exp
-         return (EApp id exp, t)
-             where
-                checkAllArgs [] [] = Ok ()
-                checkAllArgs [(ty, _)] [exp] = 
-                             checkExp exp ty
-                checkAllArgs ((ty,_):tysids) (exp:exps) = do
-                             checkExp exp ty
-                             checkAllArgs tysids exps -}
-checkExp (EString s)   t = undefined -- return (EString s, String)
+         case lookupFun id env of
+              Bad s -> do typeResult False
+                          return (ELitFalse, Void)
+              Ok (tysids,typeFun) ->
+                 do typeResult (t == typeFun)
+                    -- Same number of argument as requested
+                    typeResult (length exp == length tysids)
+                    checkAllArgs tysids exp
+                    return (EApp id exp, t)
+                    where
+                        checkAllArgs [] [] = return (ELitTrue, Void)
+                        checkAllArgs [(ty, _)] [exp] = 
+                                     checkExp exp ty
+                        checkAllArgs ((ty,_):tysids) (exp:exps) = do
+                                     checkExp exp ty
+                                     checkAllArgs tysids exps
+checkExp (EString s)   t      = undefined -- return (EString s, String)
 checkExp (Neg e)       t      = do
          te <- infer e
          typeResult (te == t)
