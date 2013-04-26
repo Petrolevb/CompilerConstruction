@@ -24,9 +24,6 @@ getLetterFromType t = case t of
 getLettersArgs :: [Arg] -> String
 getLettersArgs  = map (\(Arg typeA _) -> getLetterFromType typeA)
 
-getLocalaStackSize :: AnnotatedBlock -> (Int, Int)
-getLocalaStackSize _ = (0, 0)
-
 generation :: AnnotatedProgram -> IO ()
 generation (AnnotatedProgram topdefs) = evalStateT (genProg topdefs) newContext
 
@@ -52,7 +49,8 @@ genBlock (AnnotatedBlock stmts) = mapM_ genStmt stmts
 genStmt :: AnnotatedStmt -> GenState ()
 genStmt TYP.Empty                 = returnCode ""
 genStmt (TYP.BStmt block)         = genBlock block
-genStmt (TYP.Decl typeDecl items) = returnCode "Decl\n"
+genStmt (TYP.Decl typeDecl items) = genDecl typeDecl items
+
 genStmt (TYP.Ass ident exp)       = do
     genExp exp
     env <- get
@@ -137,7 +135,9 @@ genExp (ELitTrue, _)                = returnCode $ "iconst_1" ++ "\n"
 genExp (ELitFalse, _)               = returnCode $ "iconst_0" ++" \n"
 genExp (EApp ident exprs, typeExp)  = returnCode "EApp\n"
 genExp (EString string, typeExp)    = returnCode "EString\n"
-genExp (Neg expr, typeExp)          = returnCode "Neg\n"
+genExp (Neg expr, typeExp)          = do
+    genExp (expr, typeExp)
+    returnCode "ineg\n"
 genExp (Not expr, typeExp)          = returnCode "Not\n"
 
 genExp (EMul e1 Times e2, typeExp)  = do
@@ -204,3 +204,20 @@ genConditionInt e1 e2 s = do
     genExp (e2, Int)
     returnCode s
 
+
+genDecl :: Type -> [Item] -> GenState ()
+genDecl t is = mapM_  (genItem t) is
+    where 
+        genItem t (NoInit ident)    = do
+            env <- get
+            put $ addVar env (t, ident)
+        genItem t (Init ident exp)  = do
+            genExp (exp, t)
+            env <- get
+            put $ addVar env (t, ident)
+            env <- get
+            let (_, pos) = getMemory env ident
+            case t of 
+                Int  -> returnCode $ "istore " ++ show pos ++ "\n"
+                Bool -> returnCode $ "istore " ++ show pos ++ "\n" 
+                Doub -> returnCode $ "dstore " ++ show pos ++ "\n"
