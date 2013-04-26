@@ -34,15 +34,22 @@ run v p s =
            Bad s    -> do putStrLn "\nParse              Failed...\n"
                           putStrLn s
            Ok  tree -> case typecheck tree of
-                            Bad s  -> putStrV v $ "\nFail to anotate : " ++ s 
+                            Bad s  -> do
+                                ioError (userError "ERROR")
+                                putStrV v $ "\nFail to anotate : " ++ s 
                             Ok at  -> do 
                                 generation at
+                                -- java -jar lib/jasmin.jar a.j
+                                ioError (userError "OK")
 
 main :: IO ()
 main = do args <- getArgs
           case args of
             [] -> hGetContents stdin >>= run 2 pProgram
             "-s":fs -> mapM_ (runFile 0 pProgram) fs
+            "-b":"JVM":fs  -> mapM_ (runFile 2 pProgram) fs 
+            "-b":"LLVM":fs -> fail "LLVM not implemented yet"
+            "-b":"x86":fs  -> fail "x86 not implemented yet"
             fs -> mapM_ (runFile 2 pProgram) fs
 
 
