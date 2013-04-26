@@ -4,7 +4,9 @@ import Control.Monad.State
 
 import AnnotatedAbs as TYP
 import AbsJavalette as ABS
+
 import GeneratorContext
+import Size
 
 type GenState a = StateT GenContext IO a 
 

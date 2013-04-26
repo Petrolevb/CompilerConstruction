@@ -4,8 +4,7 @@ all:
 	happy -gca ParJavalette.y
 	alex -g LexJavalette.x
 	ghc --make TypeCheck.hs -o TypeCheck
-TypeCheck:
-	ghc --make TypeCheck.hs -o TypeCheck
+
 clean:
 	-rm -f *.log *.aux *.hi *.o *.dvi
 	-rm -f DocJavalette.ps
