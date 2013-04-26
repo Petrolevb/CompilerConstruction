@@ -1,5 +1,6 @@
 module Generator where
 
+import System.Directory (removeFile, doesFileExist)
 import Control.Monad.State
 
 import AnnotatedAbs as TYP
@@ -11,7 +12,7 @@ import Size
 type GenState a = StateT GenContext IO a 
 
 returnCode :: String -> GenState ()
-returnCode = liftIO.(appendFile "a.out")
+returnCode = liftIO.(appendFile "a.j")
 
 
 getLetterFromType :: Type -> Char
@@ -29,7 +30,13 @@ getLettersExps :: [AnnotatedExp] -> String
 getLettersExps = map (getLetterFromType.getType)
 
 generation :: AnnotatedProgram -> IO ()
-generation (AnnotatedProgram topdefs) = evalStateT (genProg topdefs) newContext
+generation (AnnotatedProgram topdefs) = do
+    ex <-  doesFileExist "a.j" 
+    if ex 
+        then do 
+            removeFile "a.j"
+            evalStateT (genProg topdefs) newContext
+        else evalStateT (genProg topdefs) newContext
 
 genProg :: [AnnotatedTopDef] -> GenState ()
 genProg topdefs = do
