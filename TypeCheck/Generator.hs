@@ -77,10 +77,10 @@ genStmt (TYP.Ass ident exp)       = do
 
 genStmt (TYP.Incr ident)          = do
     env <- get
-    returnCode $  "iinc" ++  (show (snd (getMemory env ident))) ++ "1\n"
+    returnCode $  "iinc " ++  (show (snd (getMemory env ident))) ++ " 1\n"
 genStmt (TYP.Decr ident)          = do
     env <- get
-    returnCode $ "iinc" ++  (show (snd (getMemory env ident))) ++ "(-1)\n"
+    returnCode $ "iinc " ++  (show (snd (getMemory env ident))) ++ " (-1)\n"
 
 
 genStmt (TYP.Ret exp)             = do
@@ -154,8 +154,8 @@ genExp (TYP.EApp (Ident s) exprs typeExp)  = do
         "readDouble"    -> returnCode "invokestatic Runtime/readDouble()D\n"
         "printString"   -> returnCode "invokestatic Runtime/printString(Ljava/lang/String)V\n"
         _               -> returnCode $ "invokestatic " ++ s ++ "(" ++ (getLettersExps exprs) ++")"++ (getLetterFromType typeExp):"\n"
-genExp (TYP.EString string typeExp)    = returnCode "EString\n"
-genExp (TYP.Neg expr typeExp)          = do
+genExp (TYP.EString string _)          = returnCode $ "ldc \"" ++ string ++ "\"\n"
+genExp (TYP.Neg expr _ )               = do
     genExp expr
     returnCode "ineg\n"
 genExp (TYP.Not expr typeExp)          = returnCode "Not\n"
