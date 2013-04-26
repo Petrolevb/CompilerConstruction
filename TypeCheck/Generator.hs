@@ -16,10 +16,11 @@ returnCode = liftIO.(appendFile "a.out")
 
 getLetterFromType :: Type -> Char
 getLetterFromType t = case t of
-    Int -> 'I'
+    Int  -> 'I'
     Doub -> 'D'
     Void -> 'V'
     Bool -> 'I'
+    Str  -> 'S'
 
 getLettersArgs :: [Arg] -> String
 getLettersArgs  = map (\(Arg typeA _) -> getLetterFromType typeA)
@@ -31,7 +32,12 @@ generation :: AnnotatedProgram -> IO ()
 generation (AnnotatedProgram topdefs) = evalStateT (genProg topdefs) newContext
 
 genProg :: [AnnotatedTopDef] -> GenState ()
-genProg topdefs = mapM_  genTopDef topdefs
+genProg topdefs = do
+    returnCode ".class public jasmin\n"
+    returnCode ".super java/lang/Object\n"
+    returnCode ".method public <init>()V\naload_0\ninvokespecial java/lang/Object/<init>()V\nreturn\n.end method\n\n"
+    returnCode ".method public static main([Ljava/lang/String;)V\n.limit locals 1\ninvokestatic jasmin/main()\npop\nreturn\n.end method\n\n"
+    mapM_  genTopDef topdefs
 
 genTopDef :: AnnotatedTopDef -> GenState ()
 genTopDef (TYP.FnDef typeFn ident args block) = do
@@ -59,10 +65,8 @@ genStmt (TYP.Ass ident exp)       = do
     env <- get
     let (typ, pos) = getMemory env ident
     case typ of
-        Int  -> returnCode $ "istore " ++ show pos ++ "\n"
-        Bool -> returnCode $ "istore " ++ show pos ++ "\n"
         Doub -> returnCode $ "dstore " ++ show pos ++ "\n"
-    -- 
+        _    -> returnCode $ "istore " ++ show pos ++ "\n"
 
 genStmt (TYP.Incr ident)          = do
     env <- get
@@ -135,9 +139,9 @@ genExp (TYP.ELitInt int _)             = returnCode $ "ldc " ++ show int ++ "\n"
 genExp (TYP.ELitDoub double _)         = returnCode $ "ldc2_w " ++ show double ++ "\n"
 genExp (TYP.ELitTrue _)                = returnCode $ "iconst_1" ++ "\n"
 genExp (TYP.ELitFalse _)               = returnCode $ "iconst_0" ++" \n"
-genExp (TYP.EApp ident exprs typeExp)  = do
+genExp (TYP.EApp (Ident s) exprs typeExp)  = do
     mapM_ genExp exprs
-    returnCode $ "invokestatic " ++ (show ident) ++ "(" ++ (getLettersExps exprs) ++ ")" ++ (getLetterFromType typeExp): ")\n"
+    returnCode $ "invokestatic " ++ s ++ "(" ++ (getLettersExps exprs) ++")"++ (getLetterFromType typeExp):"\n"
 genExp (TYP.EString string typeExp)    = returnCode "EString\n"
 genExp (TYP.Neg expr typeExp)          = do
     genExp expr
