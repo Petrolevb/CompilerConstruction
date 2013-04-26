@@ -134,7 +134,6 @@ genStmt (TYP.SExp exp)                = genExp exp
 
 
 
-
 genExp :: AnnotatedExp -> GenState ()
 genExp (TYP.EVar ident typeExp)        = do
     env <- get
@@ -148,7 +147,13 @@ genExp (TYP.ELitTrue _)                = returnCode $ "iconst_1" ++ "\n"
 genExp (TYP.ELitFalse _)               = returnCode $ "iconst_0" ++" \n"
 genExp (TYP.EApp (Ident s) exprs typeExp)  = do
     mapM_ genExp exprs
-    returnCode $ "invokestatic " ++ s ++ "(" ++ (getLettersExps exprs) ++")"++ (getLetterFromType typeExp):"\n"
+    case s of 
+        "printInt"      -> returnCode "invokestatic Runtime/printInt(I)V\n"
+        "printDouble"   -> returnCode "invokestatic Runtime/printDouble(D)V\n"
+        "readInt"       -> returnCode "invokestatic Runtime/readInt()I\n"
+        "readDouble"    -> returnCode "invokestatic Runtime/readDouble()D\n"
+        "printString"   -> returnCode "invokestatic Runtime/printString(Ljava/lang/String)V\n"
+        _               -> returnCode $ "invokestatic " ++ s ++ "(" ++ (getLettersExps exprs) ++")"++ (getLetterFromType typeExp):"\n"
 genExp (TYP.EString string typeExp)    = returnCode "EString\n"
 genExp (TYP.Neg expr typeExp)          = do
     genExp expr
