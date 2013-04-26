@@ -37,13 +37,14 @@ genTopDef :: AnnotatedTopDef -> GenState ()
 genTopDef (TYP.FnDef typeFn ident args block) = do
     env <- get
     put $ addArgs (addFunc env ident) args
+    env <- get
     let (local, stack) = getLocalaStackSize block
     returnCode $ ".method public static " ++ (getNameFunc env) 
     returnCode $ "(" ++ (getLettersArgs args) ++ ")" ++ (getLetterFromType typeFn) : "\n" 
     returnCode $ ".limit locals " ++ (show local) ++ "\n"
     returnCode $ ".limit stack " ++ (show stack) ++ "\nentry:\n" 
     genBlock block
-    returnCode $ ".end method"
+    returnCode $ ".end method\n\n"
 
 genBlock :: AnnotatedBlock -> GenState ()
 genBlock (AnnotatedBlock stmts) = mapM_ genStmt stmts
@@ -64,20 +65,20 @@ genStmt (TYP.Ass ident exp)       = do
 
 genStmt (TYP.Incr ident)          = do
     env <- get
-    returnCode $  "iinc" ++  (show (snd (getMemory env ident))) ++ "1"
+    returnCode $  "iinc" ++  (show (snd (getMemory env ident))) ++ "1\n"
 genStmt (TYP.Decr ident)          = do
     env <- get
-    returnCode $ "iinc" ++  (show (snd (getMemory env ident))) ++ "(-1)"
+    returnCode $ "iinc" ++  (show (snd (getMemory env ident))) ++ "(-1)\n"
 
 
 genStmt (TYP.Ret exp)             = do
     genExp exp
     case (getType exp) of
-        Int  -> returnCode "ireturn"
-        Bool -> returnCode "ireturn"
-        Doub -> returnCode "dreturn"
+        Int  -> returnCode "ireturn\n"
+        Bool -> returnCode "ireturn\n"
+        Doub -> returnCode "dreturn\n"
         
-genStmt TYP.VRet                  = returnCode "ireturn"
+genStmt TYP.VRet                  = returnCode "ireturn\n"
 genStmt (TYP.Cond exp stmt)       = do
     env <- get
     genExp exp
@@ -154,14 +155,14 @@ genExp (EAdd e1 Plus e2, typeExp)   = do
     genExp (e1, typeExp)
     genExp (e2, typeExp)
     case typeExp of
-        Int  -> returnCode "iadd"
-        Doub -> returnCode "dadd"
+        Int  -> returnCode "iadd\n"
+        Doub -> returnCode "dadd\n"
 genExp (EAdd e1 Minus e2, typeExp)  = do
     genExp (e1, typeExp)
     genExp (e2, typeExp)
     case typeExp of
-        Int  -> returnCode "isub"
-        Doub -> returnCode "dsub"
+        Int  -> returnCode "isub\n"
+        Doub -> returnCode "dsub\n"
 
 genExp (ERel e1 LTH e2, typeExp)  = case typeExp of
     Int  -> genConditionInt e1 e2 "if_icmplt"
