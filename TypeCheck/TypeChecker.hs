@@ -156,9 +156,9 @@ checkStmt (AbsJavalette.SExp expr) = do
     annoExpr <- checkExp expr t
     return (AnnotatedAbs.SExp annoExpr)
 
-typeResult :: Bool -> ErrTypeCheck ()
-typeResult False = fail "Error on type checking"
-typeResult True  = return ()
+typeResult :: Bool -> String -> ErrTypeCheck ()
+typeResult False s = fail $ "Type Error : " ++ s
+typeResult True  _ = return ()
 
 -- Check type of exp
 checkExp :: Expr -> Type -> ErrTypeCheck AnnotatedExp
@@ -168,17 +168,18 @@ checkExp (ELitInt  i ) Int  = return (ELitInt i, Int)
 checkExp (ELitDoub d ) Doub = return (ELitDoub d, Doub)
 checkExp (EVar      id) t    = do
          tId <- infer (EVar id)
-         typeResult (tId == t)
+         typeResult (tId == t) "check exp Evar"
          return (EVar id, t)
 checkExp (EApp id exp) t    = do
          env <- get
          case lookupFun id env of
-              Bad s -> do typeResult False
-                          return (ELitFalse, Void)
+              Bad s -> do
+                    typeResult False "checkexp EApp : lookupFun fail"
+                    return (ELitFalse, Void)
               Ok (tysids,typeFun) ->
-                 do typeResult (t == typeFun)
+                 do typeResult (t == typeFun) "checkExp EApp"
                     -- Same number of argument as requested
-                    typeResult (length exp == length tysids)
+                    typeResult (length exp == length tysids) "checkExp EApp : length exp /= length args"
                     checkAllArgs tysids exp
                     return (EApp id exp, t)
                     where
@@ -191,27 +192,27 @@ checkExp (EApp id exp) t    = do
 checkExp (EString s)   t      = undefined -- return (EString s, String)
 checkExp (Neg e)       t      = do
          te <- infer e
-         typeResult (te == t)
+         typeResult (te == t) "checkExp Neg"
          return (Neg e, t)
 checkExp (Not e) Bool         = do
          te <- infer e
-         typeResult (te == Bool)
+         typeResult (te == Bool) "checkExp Not"
          return (Not e, Bool)
 checkExp (EMul e1 op e2) t    = 
          case op of
               Mod -> do te1 <- checkList e1 e2 [Int]
-                        typeResult (te1 == t)
+                        typeResult (te1 == t) "checkExp EMul"
                         return (EMul e1 op e2, t)
               _   -> do te1 <- checkList e1 e2 [Int, Doub]
-                        typeResult (te1 == t)
+                        typeResult (te1 == t) "checkExp Emul"
                         return (EMul e1 op e2, t)
 checkExp (EAdd e1 op e2) t    = do
          te1 <- checkList e1 e2 [Int, Doub]
-         typeResult(te1 == t)
+         typeResult(te1 == t) "checkExp EAdd"
          return (EAdd e1 op e2, t)
 checkExp (ERel e1 op e2) Bool = do
          te1 <- checkList e1 e2 [Bool]
-         typeResult (te1 == Bool)
+         typeResult (te1 == Bool) "checkExp ERel"
          return (ERel e1 op e2, Bool)
 checkExp (EAnd e1 e2) Bool    = do
          checkBool e1 e2
@@ -219,14 +220,14 @@ checkExp (EAnd e1 e2) Bool    = do
 checkExp (EOr e1 e2) Bool     = do
          checkBool e1 e2
          return (EOr e1 e2, Bool)
-checkExp _ _                  = do typeResult False
+checkExp _ _                  = do typeResult False  "checkExp inconnu"
                                    return (ELitFalse, Void)
 
 checkList :: Expr -> Expr -> [Type] -> ErrTypeCheck Type
 checkList e1 e2 ts = do
         te1 <- infer e1
         checkExp e2 te1
-        typeResult (te1 `elem` ts)
+        typeResult (te1 `elem` ts) "check List"
         return te1
 
 checkBool :: Expr -> Expr -> ErrTypeCheck Type
@@ -256,11 +257,11 @@ infer (EApp id exos) = do
 infer (EString s) = undefined -- return (EString s, String)
 infer (Neg e)     = do
       te <- infer e
-      typeResult (te `elem` [Int, Doub])
+      typeResult (te `elem` [Int, Doub]) "infer Neg"
       return te
 infer (Not e)     = do
       te <- infer e
-      typeResult (te == Bool)
+      typeResult (te == Bool) "infer not"
       return Bool
 infer (EMul e1 op e2) = 
       case op of
