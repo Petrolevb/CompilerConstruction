@@ -3,3 +3,4 @@ ErrM.*
 *.hi
 *.o
 TypeCheck
+tmp

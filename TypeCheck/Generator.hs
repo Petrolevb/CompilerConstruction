@@ -58,9 +58,9 @@ genStmt (TYP.Ass ident exp)       = do
     env <- get
     let (typ, pos) = getMemory env ident
     case typ of
-        Int  -> returnCode $ "istore " ++ show pos
-        Bool -> returnCode $ "istore " ++ show pos
-        Doub -> returnCode $ "dstore " ++ show pos
+        Int  -> returnCode $ "istore " ++ show pos ++ "\n"
+        Bool -> returnCode $ "istore " ++ show pos ++ "\n"
+        Doub -> returnCode $ "dstore " ++ show pos ++ "\n"
     -- 
 
 genStmt (TYP.Incr ident)          = do
@@ -79,15 +79,20 @@ genStmt (TYP.Ret exp)             = do
         Doub -> returnCode "dreturn\n"
         
 genStmt TYP.VRet                  = returnCode "ireturn\n"
+genStmt (TYP.Cond (ELitTrue, _) stmt)  = genStmt stmt
+genStmt (TYP.Cond (ELitFalse, _) stmt) = returnCode ""
 genStmt (TYP.Cond exp stmt)       = do
     env <- get
     genExp exp
     let lab1 = getLabel env
+    put $ incrLabel env
     returnCode $ lab1 ++ ":\n" 
     genStmt stmt
 genStmt (TYP.CondElse exp s1 TYP.Empty)  = do
     env <- get
     fail $ "Empty branch exist in " ++ (getNameFunc env) ++ " in a if else statement"
+genStmt (TYP.CondElse (ELitTrue, _) s _)  = genStmt s
+genStmt (TYP.CondElse (ELitFalse, _) _ s) = genStmt s
 genStmt (TYP.CondElse exp s1 s2)  = do
     env <- get 
     let lab1 = (getLabel env)
