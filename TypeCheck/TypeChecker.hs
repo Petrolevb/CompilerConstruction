@@ -174,7 +174,7 @@ checkExp (EApp id exp) t    = do
          env <- get
          case lookupFun id env of
               Bad s -> do
-                    typeResult False "checkexp EApp : lookupFun fail"
+                    typeResult False ("checkexp EApp : lookupFun fail " ++ s)
                     return (ELitFalse, Void)
               Ok (tysids,typeFun) ->
                  do typeResult (t == typeFun) "checkExp EApp"
@@ -189,7 +189,7 @@ checkExp (EApp id exp) t    = do
                         checkAllArgs ((ty,_):tysids) (exp:exps) = do
                                      checkExp exp ty
                                      checkAllArgs tysids exps
-checkExp (EString s)   t      = undefined -- return (EString s, String)
+checkExp (EString s)   t      = return (EString s, Str) 
 checkExp (Neg e)       t      = do
          te <- infer e
          typeResult (te == t) "checkExp Neg"
@@ -211,7 +211,7 @@ checkExp (EAdd e1 op e2) t    = do
          typeResult(te1 == t) "checkExp EAdd"
          return (EAdd e1 op e2, t)
 checkExp (ERel e1 op e2) Bool = do
-         te1 <- checkList e1 e2 [Int, Doub]
+         te1 <- checkList e1 e2 [Int, Doub, Bool]
          return (ERel e1 op e2, Bool)
 checkExp (EAnd e1 e2) Bool    = do
          checkBool e1 e2
@@ -253,7 +253,7 @@ infer (EApp id exos) = do
       case lookupFun id env of
            Bad _ -> return Void
            Ok (_, typeFun) -> return typeFun
-infer (EString s) = undefined -- return (EString s, String)
+infer (EString s) = return Str
 infer (Neg e)     = do
       te <- infer e
       typeResult (te `elem` [Int, Doub]) "infer Neg"
@@ -269,7 +269,7 @@ infer (EMul e1 op e2) =
            _   -> checkList e1 e2 [Int, Doub]
 infer (EAdd e1 op e2) = checkList e1 e2 [Int, Doub]
 infer (ERel e1 op e2) = do
-      checkList e1 e2 [Int, Doub]
+      checkList e1 e2 [Int, Doub, Bool]
       return Bool
 infer (EAnd e1 e2) = checkBool e1 e2
 infer (EOr e1 e2)  = checkBool e1 e2

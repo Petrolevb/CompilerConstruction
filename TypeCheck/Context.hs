@@ -57,14 +57,14 @@ lookupVar id (s, ((t, i):env):stack, ss) | i == id   = Ok t
 -- check in the signature of the function
 lookupInFun :: Ident -> Env -> Err Type
 lookupInFun id ((_, (args, _)), _, _) = lookInArgs id args
-    where   lookInArgs id []  = Bad "Variable not found in signature"
+    where   lookInArgs id []  = Bad ("Variable " ++ show id ++ " not found in signature")
             lookInArgs id ((tyArg,idArg):args) 
                 | id == idArg = Ok tyArg
                 | otherwise   = lookInArgs id args
 
 lookupFun :: Ident -> Env -> Err FunType
 lookupFun id (_, _, sigs)      = lookInSigs id sigs 
-    where lookInSigs id [] = Bad "Fun not found"
+    where lookInSigs id [] = Bad ("Fun " ++ show id ++ " not found")
           lookInSigs id ((idFun, tyFun):sigs) 
             | id == idFun = Ok tyFun
             | otherwise   = lookInSigs id sigs
