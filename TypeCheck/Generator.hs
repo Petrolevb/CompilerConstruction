@@ -25,10 +25,13 @@ getLettersArgs :: [Arg] -> String
 getLettersArgs  = map (\(Arg typeA _) -> getLetterFromType typeA)
 
 getLocalaStackSize :: AnnotatedBlock -> (Int, Int)
-getLocalaStackSize = (0, 0)
+getLocalaStackSize _ = (0, 0)
 
 generation :: AnnotatedProgram -> IO ()
-generation = undefined
+generation (AnnotatedProgram topdefs) = evalStateT (genProg topdefs) newContext
+
+genProg :: [AnnotatedTopDef] -> GenState ()
+genProg topdefs = mapM_  genTopDef topdefs
 
 genTopDef :: AnnotatedTopDef -> GenState ()
 genTopDef (TYP.FnDef typeFn ident args block) = do
@@ -43,7 +46,7 @@ genTopDef (TYP.FnDef typeFn ident args block) = do
     returnCode $ ".end method"
 
 genBlock :: AnnotatedBlock -> GenState ()
-genBlock = undefined
+genBlock (AnnotatedBlock stmts) = mapM_ genStmt stmts
 
 genStmt :: AnnotatedStmt -> GenState ()
 genStmt TYP.Empty                 = returnCode ""
