@@ -14,6 +14,8 @@ import AbsJavalette
 import AnnotatedAbs
 import TypeChecker
 
+import Generator
+
 import ErrM
 
 type ParseFun a = [Token] -> Err a
@@ -31,17 +33,10 @@ run v p s =
     case p (myLexer s) of
            Bad s    -> do putStrLn "\nParse              Failed...\n"
                           putStrLn s
-           Ok  tree -> do putStrLn "\nParse Successful!"
-                          case typecheck tree of
+           Ok  tree -> case typecheck tree of
                             Bad s  -> putStrV v $ "\nFail to anotate : " ++ s 
-                            Ok at  -> putStrV v $ show at
-                          showTree v tree
-
-showTree :: (Show a, Print a) => Int -> a -> IO ()
-showTree v tree
- = do
-      putStrV v $ "\n[Abstract Syntax]\n\n" ++ show tree
-      putStrV v $ "\n[Linearized tree]\n\n" ++ printTree tree
+                            Ok at  -> do 
+                                generation at
 
 main :: IO ()
 main = do args <- getArgs

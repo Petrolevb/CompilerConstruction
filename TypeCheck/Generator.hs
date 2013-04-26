@@ -51,7 +51,7 @@ genBlock (AnnotatedBlock stmts) = mapM_ genStmt stmts
 genStmt :: AnnotatedStmt -> GenState ()
 genStmt TYP.Empty                 = returnCode ""
 genStmt (TYP.BStmt block)         = genBlock block
-genStmt (TYP.Decl typeDecl items) = undefined
+genStmt (TYP.Decl typeDecl items) = returnCode "Decl\n"
 genStmt (TYP.Ass ident exp)       = do
     genExp exp
     env <- get
@@ -122,17 +122,17 @@ genExp (EVar ident, typeExp)        = do
     env <- get
     let pos = snd $ getMemory env ident
     case typeExp of
-        Int  -> returnCode $ "iload " ++ show pos
-        Bool -> returnCode $ "iload " ++ show pos
-        Doub -> returnCode $ "dload " ++ show pos
-genExp (ELitInt int, _)             = returnCode $ "iconst " ++ show int
-genExp (ELitDoub double, _)         = returnCode $ "dconst " ++ show double
-genExp (ELitTrue, _)                = returnCode "iconst_1"
-genExp (ELitFalse, _)               = returnCode "iconst_0"
-genExp (EApp ident exprs, typeExp)  = undefined
-genExp (EString string, typeExp)    = undefined
-genExp (Neg expr, typeExp)          = undefined
-genExp (Not expr, typeExp)          = undefined
+        Int  -> returnCode $ "iload " ++ show pos ++ "\n"
+        Bool -> returnCode $ "iload " ++ show pos ++ "\n"
+        Doub -> returnCode $ "dload " ++ show pos ++ "\n"
+genExp (ELitInt int, _)             = returnCode $ "ldc " ++ show int ++ "\n"
+genExp (ELitDoub double, _)         = returnCode $ "ldc2_w " ++ show double ++ "\n"
+genExp (ELitTrue, _)                = returnCode $ "iconst_1" ++ "\n"
+genExp (ELitFalse, _)               = returnCode $ "iconst_0" ++" \n"
+genExp (EApp ident exprs, typeExp)  = returnCode "EApp\n"
+genExp (EString string, typeExp)    = returnCode "EString\n"
+genExp (Neg expr, typeExp)          = returnCode "Neg\n"
+genExp (Not expr, typeExp)          = returnCode "Not\n"
 
 genExp (EMul e1 Times e2, typeExp)  = do
     genExp (e1, typeExp)
@@ -164,30 +164,37 @@ genExp (EAdd e1 Minus e2, typeExp)  = do
         Doub -> returnCode "dsub"
 
 genExp (ERel e1 LTH e2, typeExp)  = case typeExp of
-    Int  -> genCondition typeExp e1 e2 "if_icmplt"
-    Doub -> undefined
+    Int  -> genConditionInt e1 e2 "if_icmplt"
+    Doub -> genConditionDouble e1 e2 "dcmpl" "iflt"
 genExp (ERel e1 LE e2, typeExp)   = case typeExp of
-    Int  -> genCondition typeExp e1 e2 "if_icmple"
-    Doub -> undefined
+    Int  -> genConditionInt e1 e2 "if_icmple"
+    Doub -> genConditionDouble e1 e2 "dcmpl" "ifle"
 genExp (ERel e1 GTH e2, typeExp)  = case typeExp of
-    Int  -> genCondition typeExp e1 e2 "if_icmpgt"
-    Doub -> undefined
+    Int  -> genConditionInt e1 e2 "if_icmpgt"
+    Doub -> genConditionDouble e1 e2 "dcmpg" "ifgt"
 genExp (ERel e1 GE e2, typeExp)   = case typeExp of
-    Int  -> genCondition typeExp e1 e2 "if_icmpge"
-    Doub -> undefined
+    Int  -> genConditionInt e1 e2 "if_icmpge"
+    Doub -> genConditionDouble e1 e2 "dcmpg" "ifge"
 genExp (ERel e1 EQU e2, typeExp)  = case typeExp of
-    Int  -> genCondition typeExp e1 e2 "if_icmpeq"
-    Doub -> undefined
+    Int  -> genConditionInt e1 e2 "if_icmpeq"
+    Doub -> genConditionDouble e1 e2 "dcmpl" "ifeq"
 genExp (ERel e1 NE e2, typeExp)   = case typeExp of
-    Int  -> genCondition typeExp e1 e2 "if_icmpne"
-    Doub -> undefined
+    Int  -> genConditionInt e1 e2 "if_icmpne"
+    Doub -> genConditionDouble e1 e2 "dcmpl" "ifne"
 
-genExp (EAnd e1 e2, typeExp)      = undefined
-genExp (EOr e1 e2, typeExp)       = undefined
+genExp (EAnd e1 e2, typeExp)      = returnCode "EAnd\n"
+genExp (EOr e1 e2, typeExp)       = returnCode "EOr\n"
 
-genCondition :: Type -> Expr -> Expr -> String -> GenState ()
-genCondition t e1 e2 s = do
-    genExp (e1, t)
-    genExp (e2, t)
+genConditionDouble :: Expr -> Expr -> String -> String -> GenState ()
+genConditionDouble e1 e2 s1 s2= do
+    genExp (e1, Doub)
+    genExp (e2, Doub)
+    returnCode $ s1 ++ "\n" ++ s2
+
+
+genConditionInt :: Expr -> Expr -> String -> GenState ()
+genConditionInt e1 e2 s = do
+    genExp (e1, Int)
+    genExp (e2, Int)
     returnCode s
 
