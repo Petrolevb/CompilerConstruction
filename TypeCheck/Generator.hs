@@ -95,10 +95,13 @@ genStmt (TYP.Cond (TYP.ELitTrue _) stmt)  = genStmt stmt
 genStmt (TYP.Cond (TYP.ELitFalse _) stmt) = returnCode ""
 genStmt (TYP.Cond exp stmt)       = do
     env <- get
-    genExp exp
     let lab1 = getLabel env
-    put $ incrLabel env
+    let tmpEnv = incrLabel env
+    put $ pushLabel tmpEnv lab1
+    genExp exp
     returnCode $ lab1 ++ ":\n" 
+    env2 <- get
+    put $ popLabel env2
     genStmt stmt
 genStmt (TYP.CondElse exp s1 TYP.Empty)  = do
     env <- get
@@ -106,30 +109,34 @@ genStmt (TYP.CondElse exp s1 TYP.Empty)  = do
 genStmt (TYP.CondElse (TYP.ELitTrue _) s _)  = genStmt s
 genStmt (TYP.CondElse (TYP.ELitFalse _) _ s) = genStmt s
 genStmt (TYP.CondElse exp s1 s2)  = do
-    env <- get 
+    env <- get
     let lab1 = (getLabel env)
-    let newEnv = incrLabel env
-    let lab2 = (getLabel newEnv)
-    put $ incrLabel newEnv
+    let tmpEnv = incrLabel env
+    let lab2 = (getLabel tmpEnv)
+    let newEnv = incrLabel tmpEnv
+    put $ pushLabel newEnv lab1
     genExp exp
-    returnCode $ " " ++ lab1 ++ "\n" -- if true jump lab1, else continue
-    genStmt s2
-    returnCode $ "goto " ++ lab2 ++ "\n"
-    returnCode $ lab1 ++ ":\n" 
     genStmt s1
-    returnCode $ lab2 ++ ":\n" 
+    returnCode $ "goto " ++ lab2 ++ "\n"
+    returnCode $ lab1 ++ ":\n"
+    env2 <- get
+    put $ popLabel env2
+    genStmt s2
+    returnCode $ lab2 ++ ":\n"    
 
-genStmt (TYP.While exp stmt)          = do
-    env <- get 
+genStmt (TYP.While exp stmt) = do
+    env <- get
     let lab1 = (getLabel env)
-    let newEnv = incrLabel env
-    let lab2 = (getLabel newEnv)
-    put $ incrLabel newEnv
-    returnCode $ "goto " ++ lab2 ++ "\n" ++ lab1 ++ ":\n" 
-    genStmt stmt
-    returnCode $ lab2 ++ ":\n" 
+    let tmpEnv = incrLabel env
+    let lab2 = (getLabel tmpEnv)
+    put $ pushLabel tmpEnv lab2
     genExp exp
-    returnCode $ " " ++ lab1 ++"\n" -- finish on an if (theorically)
+    returnCode $ lab1 ++ ":\n"
+    genStmt stmt
+    returnCode $ "goto " ++ lab1 ++ "\n"
+    returnCode $ lab2 ++ ":\n"
+    env2 <- get
+    put $ popLabel env2
 genStmt (TYP.SExp exp)                = genExp exp
 
 
@@ -191,49 +198,55 @@ genExp (TYP.EAdd e1 Minus e2 typeExp)  = do
 genExp (TYP.ERel e1 LTH e2 t)  = do
     let typeExp = getType e1
     case typeExp of
-        Int  -> genConditionInt e1 e2 "if_icmplt"
-        Doub -> genConditionDouble e1 e2 "dcmpl" "iflt"
+        Int  -> genConditionInt e1 e2 "if_icmpge"
+        Doub -> genConditionDouble e1 e2 "dcmpl" "ifge"
 genExp (TYP.ERel e1 LE e2 t)   = do 
     let typeExp = getType e1
     case typeExp of
-        Int  -> genConditionInt e1 e2 "if_icmple"
-        Doub -> genConditionDouble e1 e2 "dcmpl" "ifle"
+        Int  -> genConditionInt e1 e2 "if_icmpgt"
+        Doub -> genConditionDouble e1 e2 "dcmpl" "ifgt"
 genExp (TYP.ERel e1 GTH e2 t)  = do 
     let typeExp = getType e1
     case typeExp of
-        Int  -> genConditionInt e1 e2 "if_icmpgt"
-        Doub -> genConditionDouble e1 e2 "dcmpg" "ifgt"
+        Int  -> genConditionInt e1 e2 "if_icmple"
+        Doub -> genConditionDouble e1 e2 "dcmpg" "ifle"
 genExp (TYP.ERel e1 GE e2 t)   = do 
     let typeExp = getType e1
     case typeExp of
-        Int  -> genConditionInt e1 e2 "if_icmpge"
-        Doub -> genConditionDouble e1 e2 "dcmpg" "ifge"
+        Int  -> genConditionInt e1 e2 "if_icmplt"
+        Doub -> genConditionDouble e1 e2 "dcmpg" "iflt"
 genExp (TYP.ERel e1 EQU e2 t)  = do 
-    let typeExp = getType e1
-    case typeExp of
-        Doub -> genConditionDouble e1 e2 "dcmpl" "ifeq"
-        _    -> genConditionInt e1 e2 "if_icmpeq"
-genExp (TYP.ERel e1 NE e2 t)   = do 
     let typeExp = getType e1
     case typeExp of
         Doub -> genConditionDouble e1 e2 "dcmpl" "ifne"
         _    -> genConditionInt e1 e2 "if_icmpne"
+genExp (TYP.ERel e1 NE e2 t)   = do 
+    let typeExp = getType e1
+    env <- get
+    case typeExp of
+        Doub -> genConditionDouble e1 e2 "dcmpl" "ifeq"
+        _    -> genConditionInt e1 e2 "if_icmpeq"
 
-
+-- TODO !!
 genExp (TYP.EAnd e1 e2 typeExp)      = returnCode "EAnd\n"
 genExp (TYP.EOr e1 e2 typeExp)       = returnCode "EOr\n"
+--TODO
 
 genConditionDouble :: AnnotatedExp -> AnnotatedExp -> String -> String -> GenState ()
 genConditionDouble e1 e2 s1 s2= do
     genExp e1
     genExp e2
-    returnCode $ s1 ++ "\n" ++ s2
+    env <- get
+    let label = stackLabel env
+    returnCode $ s1 ++ "\n" ++ s2 ++ label ++ "\n"
 
 genConditionInt :: AnnotatedExp -> AnnotatedExp -> String -> GenState ()
 genConditionInt e1 e2 s = do
     genExp e1
     genExp e2
-    returnCode s
+    env <- get
+    let label = stackLabel env
+    returnCode $ s ++ label ++ "\n"
 
 
 genDecl :: Type -> [AnnotatedItem] -> GenState ()
