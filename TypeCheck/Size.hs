@@ -10,4 +10,4 @@ getLocalaStackSize [(stm, t):stms] = ((isVariable stm) + fst(getLocalaStackSize 
 getLocalaStackSize [] = (0, 0)
   where isVariable Ass _ _ = 1
         isVariable _   _ _ = 0
-        isOnStack
+        isOnStack _ = undefined
