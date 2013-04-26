@@ -238,7 +238,7 @@ genConditionDouble e1 e2 s1 s2= do
     genExp e2
     env <- get
     let label = stackLabel env
-    returnCode $ s1 ++ "\n" ++ s2 ++ label ++ "\n"
+    returnCode $ s1 ++ "\n" ++ s2 ++ " " ++ label ++ "\n"
 
 genConditionInt :: AnnotatedExp -> AnnotatedExp -> String -> GenState ()
 genConditionInt e1 e2 s = do
@@ -246,7 +246,7 @@ genConditionInt e1 e2 s = do
     genExp e2
     env <- get
     let label = stackLabel env
-    returnCode $ s ++ label ++ "\n"
+    returnCode $ s ++ " " ++ label ++ "\n"
 
 
 genDecl :: Type -> [AnnotatedItem] -> GenState ()

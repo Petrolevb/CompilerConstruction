@@ -42,6 +42,7 @@ pushLabel (id, c, mv, st) label = (id, c, mv, (label:st))
 -- take the first label on the stack
 stackLabel :: GenContext -> String
 stackLabel (_, _, _, (label:st)) = label
+stackLabel (_, _, _, [])         = ""
 
 -- withdraw the top label from the stack
 popLabel :: GenContext -> GenContext
