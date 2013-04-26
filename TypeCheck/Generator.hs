@@ -24,9 +24,6 @@ getLetterFromType t = case t of
 getLettersArgs :: [Arg] -> String
 getLettersArgs  = map (\(Arg typeA _) -> getLetterFromType typeA)
 
-getLocalaStackSize :: AnnotatedBlock -> (Int, Int)
-getLocalaStackSize _ = (0, 0)
-
 generation :: AnnotatedProgram -> IO ()
 generation (AnnotatedProgram topdefs) = evalStateT (genProg topdefs) newContext
 

@@ -44,5 +44,3 @@ mapArgs mv _ [] = mv
 mapArgs mv i ((Arg typeA ident):args) = mapArgs (mv ++ [(typeA, ident, i)]) (i+1) args
 
 
-
-
