@@ -69,18 +69,25 @@ check fun env =
         Ok _ -> return ()
 
 
-checkItem :: Type -> Item -> ErrTypeCheck ()
-checkItem typeItem (NoInit ident)   = do
+checkItem :: Type -> Item -> ErrTypeCheck AnnotatedItem
+checkItem typeItem (ABS.NoInit ident)   = do
     env <- get
     case extendVar env ident typeItem of
         Ok newEnv -> do 
             put newEnv 
-            return ()
+            return $ TYP.NoInit ident
         Bad     s -> fail s
-checkItem typeItem (Init ident exp) = do
+checkItem typeItem (ABS.Init ident exp) = do
     typeExp <- infer exp 
     if typeExp == typeItem 
-        then checkItem typeItem (NoInit ident) -- same case
+        then do
+            env <- get 
+            case extendVar env ident typeItem of
+                Ok newEnv -> do
+                    put newEnv
+                    newExp <- checkExp exp typeExp
+                    return $ TYP.Init ident newExp
+                Bad s     -> fail s
         else fail ("Type Error: " ++ show ident ++ "=" ++ show exp)
 
 checkStmt :: Stmt -> ErrTypeCheck AnnotatedStmt
@@ -91,8 +98,8 @@ checkStmt (ABS.BStmt block)               = do
     return (TYP.BStmt annoBlock)
 
 checkStmt (ABS.Decl typeDecl items)       = do
-    mapM_ (checkItem typeDecl) items -- update env
-    return (TYP.Decl typeDecl items)
+    newi <- mapM (checkItem typeDecl) items -- update env
+    return (TYP.Decl typeDecl newi)
 
 checkStmt (ABS.Ass ident expr)            = do
     typeExpr <- infer expr

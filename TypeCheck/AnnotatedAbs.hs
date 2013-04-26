@@ -15,10 +15,15 @@ data AnnotatedBlock =
     AnnotatedBlock [AnnotatedStmt]
     deriving (Eq, Ord, Show)
 
+data AnnotatedItem = 
+      NoInit Ident
+    | Init Ident AnnotatedExp
+        deriving (Eq, Ord, Show)
+
 data AnnotatedStmt = 
       Empty
     | BStmt AnnotatedBlock
-    | Decl Type [Item]
+    | Decl Type [AnnotatedItem]
     | Ass Ident AnnotatedExp
     | Incr Ident
     | Decr Ident

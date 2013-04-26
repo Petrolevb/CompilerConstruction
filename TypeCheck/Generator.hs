@@ -11,8 +11,6 @@ type GenState a = StateT GenContext IO a
 returnCode :: String -> GenState ()
 returnCode = liftIO.(appendFile "a.out")
 
-getType :: AnnotatedExp -> Type
-getType = snd
 
 getLetterFromType :: Type -> Char
 getLetterFromType t = case t of
@@ -77,8 +75,8 @@ genStmt (TYP.Ret exp)             = do
         Doub -> returnCode "dreturn\n"
         
 genStmt TYP.VRet                  = returnCode "ireturn\n"
-genStmt (TYP.Cond (ELitTrue, _) stmt)  = genStmt stmt
-genStmt (TYP.Cond (ELitFalse, _) stmt) = returnCode ""
+genStmt (TYP.Cond (TYP.ELitTrue _) stmt)  = genStmt stmt
+genStmt (TYP.Cond (TYP.ELitFalse _) stmt) = returnCode ""
 genStmt (TYP.Cond exp stmt)       = do
     env <- get
     genExp exp
@@ -89,8 +87,8 @@ genStmt (TYP.Cond exp stmt)       = do
 genStmt (TYP.CondElse exp s1 TYP.Empty)  = do
     env <- get
     fail $ "Empty branch exist in " ++ (getNameFunc env) ++ " in a if else statement"
-genStmt (TYP.CondElse (ELitTrue, _) s _)  = genStmt s
-genStmt (TYP.CondElse (ELitFalse, _) _ s) = genStmt s
+genStmt (TYP.CondElse (TYP.ELitTrue _) s _)  = genStmt s
+genStmt (TYP.CondElse (TYP.ELitFalse _) _ s) = genStmt s
 genStmt (TYP.CondElse exp s1 s2)  = do
     env <- get 
     let lab1 = (getLabel env)
@@ -122,103 +120,101 @@ genStmt (TYP.SExp exp)                = genExp exp
 
 
 genExp :: AnnotatedExp -> GenState ()
-genExp (EVar ident, typeExp)        = do
+genExp (TYP.EVar ident typeExp)        = do
     env <- get
     let pos = snd $ getMemory env ident
     case typeExp of
         Int  -> returnCode $ "iload " ++ show pos ++ "\n"
         Bool -> returnCode $ "iload " ++ show pos ++ "\n"
         Doub -> returnCode $ "dload " ++ show pos ++ "\n"
-genExp (ELitInt int, _)             = returnCode $ "ldc " ++ show int ++ "\n"
-genExp (ELitDoub double, _)         = returnCode $ "ldc2_w " ++ show double ++ "\n"
-genExp (ELitTrue, _)                = returnCode $ "iconst_1" ++ "\n"
-genExp (ELitFalse, _)               = returnCode $ "iconst_0" ++" \n"
-genExp (EApp ident exprs, typeExp)  = returnCode "EApp\n"
-genExp (EString string, typeExp)    = returnCode "EString\n"
-genExp (Neg expr, typeExp)          = do
-    genExp (expr, typeExp)
+genExp (TYP.ELitInt int _)             = returnCode $ "ldc " ++ show int ++ "\n"
+genExp (TYP.ELitDoub double _)         = returnCode $ "ldc2_w " ++ show double ++ "\n"
+genExp (TYP.ELitTrue _)                = returnCode $ "iconst_1" ++ "\n"
+genExp (TYP.ELitFalse _)               = returnCode $ "iconst_0" ++" \n"
+genExp (TYP.EApp ident exprs typeExp)  = returnCode "EApp\n"
+genExp (TYP.EString string typeExp)    = returnCode "EString\n"
+genExp (TYP.Neg expr typeExp)          = do
+    genExp expr
     returnCode "ineg\n"
-genExp (Not expr, typeExp)          = returnCode "Not\n"
-
-genExp (EMul e1 Times e2, typeExp)  = do
-    genExp (e1, typeExp)
-    genExp (e2, typeExp)
+genExp (TYP.Not expr typeExp)          = returnCode "Not\n"
+genExp (TYP.EMul e1 Times e2 typeExp)  = do
+    genExp e1
+    genExp e2 
     case typeExp of
         Int  -> returnCode "imul"
         Doub -> returnCode "dmul"
-genExp (EMul e1 Div e2, typeExp)    = do
-    genExp (e1, typeExp)
-    genExp (e2, typeExp)
+genExp (TYP.EMul e1 Div e2 typeExp)    = do
+    genExp e1 
+    genExp e2
     case typeExp of
         Int  -> returnCode "idiv"
         Doub -> returnCode "ddiv"
-genExp (EMul e1 Mod e2, typeExp)    = do
-    genExp (e1, typeExp)
-    genExp (e2, typeExp)
+genExp (TYP.EMul e1 Mod e2 typeExp)    = do
+    genExp e1
+    genExp e2
     returnCode "irem" 
-genExp (EAdd e1 Plus e2, typeExp)   = do
-    genExp (e1, typeExp)
-    genExp (e2, typeExp)
+genExp (TYP.EAdd e1 Plus e2 typeExp)   = do
+    genExp e1
+    genExp e2
     case typeExp of
         Int  -> returnCode "iadd\n"
         Doub -> returnCode "dadd\n"
-genExp (EAdd e1 Minus e2, typeExp)  = do
-    genExp (e1, typeExp)
-    genExp (e2, typeExp)
+genExp (TYP.EAdd e1 Minus e2 typeExp)  = do
+    genExp e1
+    genExp e2
     case typeExp of
         Int  -> returnCode "isub\n"
         Doub -> returnCode "dsub\n"
 
-genExp (ERel e1 LTH e2, typeExp)  = case typeExp of
+genExp (TYP.ERel e1 LTH e2 typeExp)  = case typeExp of
     Int  -> genConditionInt e1 e2 "if_icmplt"
     Doub -> genConditionDouble e1 e2 "dcmpl" "iflt"
     Bool -> fail $ "Type bool here ???? " ++ show e1 ++ "<" ++ show e2
-genExp (ERel e1 LE e2, typeExp)   = case typeExp of
+genExp (TYP.ERel e1 LE e2 typeExp)   = case typeExp of
     Int  -> genConditionInt e1 e2 "if_icmple"
     Doub -> genConditionDouble e1 e2 "dcmpl" "ifle"
     Bool -> fail $ "Type bool here ????" ++ show e1 ++ "<=" ++ show e2
-genExp (ERel e1 GTH e2, typeExp)  = case typeExp of
+genExp (TYP.ERel e1 GTH e2 typeExp)  = case typeExp of
     Int  -> genConditionInt e1 e2 "if_icmpgt"
     Doub -> genConditionDouble e1 e2 "dcmpg" "ifgt"
     Bool -> fail $ "Type bool here ????" ++ show e1 ++ ">" ++ show e2
-genExp (ERel e1 GE e2, typeExp)   = case typeExp of
+genExp (TYP.ERel e1 GE e2 typeExp)   = case typeExp of
     Int  -> genConditionInt e1 e2 "if_icmpge"
     Doub -> genConditionDouble e1 e2 "dcmpg" "ifge"
     Bool -> fail $ "Type bool here ????" ++ show e1 ++ ">=" ++ show e2
-genExp (ERel e1 EQU e2, typeExp)  = case typeExp of
+genExp (TYP.ERel e1 EQU e2 typeExp)  = case typeExp of
     Int  -> genConditionInt e1 e2 "if_icmpeq"
     Bool -> genConditionInt e1 e2 "if_icmpeq"
     Doub -> genConditionDouble e1 e2 "dcmpl" "ifeq"
-genExp (ERel e1 NE e2, typeExp)   = case typeExp of
+genExp (TYP.ERel e1 NE e2 typeExp)   = case typeExp of
     Int  -> genConditionInt e1 e2 "if_icmpne"
     Bool -> genConditionInt e1 e2 "if_icmpne"
     Doub -> genConditionDouble e1 e2 "dcmpl" "ifne"
 
-genExp (EAnd e1 e2, typeExp)      = returnCode "EAnd\n"
-genExp (EOr e1 e2, typeExp)       = returnCode "EOr\n"
+genExp (TYP.EAnd e1 e2 typeExp)      = returnCode "EAnd\n"
+genExp (TYP.EOr e1 e2 typeExp)       = returnCode "EOr\n"
 
-genConditionDouble :: Expr -> Expr -> String -> String -> GenState ()
+genConditionDouble :: AnnotatedExp -> AnnotatedExp -> String -> String -> GenState ()
 genConditionDouble e1 e2 s1 s2= do
-    genExp (e1, Doub)
-    genExp (e2, Doub)
+    genExp e1
+    genExp e2
     returnCode $ s1 ++ "\n" ++ s2
 
-
-genConditionInt :: Expr -> Expr -> String -> GenState ()
+genConditionInt :: AnnotatedExp -> AnnotatedExp -> String -> GenState ()
 genConditionInt e1 e2 s = do
-    genExp (e1, Int)
-    genExp (e2, Int)
+    genExp e1
+    genExp e2
     returnCode s
 
 
-genDecl :: Type -> [Item] -> GenState ()
+genDecl :: Type -> [AnnotatedItem] -> GenState ()
 genDecl t is = mapM_  (genItem t) is
     where 
-        genItem t (NoInit ident)    = do
+        genItem t (TYP.NoInit ident)    = do
             env <- get
             put $ addVar env (t, ident)
-        genItem t (Init ident exp)  = do
-            genExp (exp, t)
+        genItem t (TYP.Init ident exp)  = do
+            genExp exp
             env <- get
             put $ addVar env (t, ident)
             env <- get
@@ -227,3 +223,20 @@ genDecl t is = mapM_  (genItem t) is
                 Int  -> returnCode $ "istore " ++ show pos ++ "\n"
                 Bool -> returnCode $ "istore " ++ show pos ++ "\n" 
                 Doub -> returnCode $ "dstore " ++ show pos ++ "\n"
+
+
+getType :: AnnotatedExp -> Type
+getType (TYP.EVar _ t) = t
+getType (TYP.ELitInt _ t) = t
+getType (TYP.ELitDoub _ t) = t
+getType (TYP.ELitTrue t) = t
+getType (TYP.ELitFalse t) = t
+getType (TYP.EApp _ _ t) = t
+getType (TYP.EString _ t) = t
+getType (TYP.Neg _ t) = t
+getType (TYP.Not _ t) = t
+getType (TYP.EMul _ _ _ t) = t
+getType (TYP.EAdd _ _ _ t) = t
+getType (TYP.ERel _ _ _ t) = t
+getType (TYP.EAnd _ _ t) = t
+getType (TYP.EOr _ _ t) = t
