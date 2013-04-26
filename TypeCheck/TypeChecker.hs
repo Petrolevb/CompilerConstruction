@@ -211,8 +211,7 @@ checkExp (EAdd e1 op e2) t    = do
          typeResult(te1 == t) "checkExp EAdd"
          return (EAdd e1 op e2, t)
 checkExp (ERel e1 op e2) Bool = do
-         te1 <- checkList e1 e2 [Bool]
-         typeResult (te1 == Bool) "checkExp ERel"
+         te1 <- checkList e1 e2 [Int, Doub]
          return (ERel e1 op e2, Bool)
 checkExp (EAnd e1 e2) Bool    = do
          checkBool e1 e2
@@ -227,7 +226,7 @@ checkList :: Expr -> Expr -> [Type] -> ErrTypeCheck Type
 checkList e1 e2 ts = do
         te1 <- infer e1
         checkExp e2 te1
-        typeResult (te1 `elem` ts) "check List"
+        typeResult (te1 `elem` ts) ("check List " ++ show te1 ++ " not in " ++ show ts)
         return te1
 
 checkBool :: Expr -> Expr -> ErrTypeCheck Type
@@ -270,7 +269,7 @@ infer (EMul e1 op e2) =
            _   -> checkList e1 e2 [Int, Doub]
 infer (EAdd e1 op e2) = checkList e1 e2 [Int, Doub]
 infer (ERel e1 op e2) = do
-      checkList e1 e2 [Bool]
+      checkList e1 e2 [Int, Doub]
       return Bool
 infer (EAnd e1 e2) = checkBool e1 e2
 infer (EOr e1 e2)  = checkBool e1 e2
