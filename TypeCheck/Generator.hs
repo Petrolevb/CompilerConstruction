@@ -80,7 +80,7 @@ genStmt (TYP.Incr ident)          = do
     returnCode $  "iinc " ++  (show (snd (getMemory env ident))) ++ " 1\n"
 genStmt (TYP.Decr ident)          = do
     env <- get
-    returnCode $ "iinc " ++  (show (snd (getMemory env ident))) ++ " (-1)\n"
+    returnCode $ "iinc " ++  (show (snd (getMemory env ident))) ++ " -1\n"
 
 
 genStmt (TYP.Ret exp)             = do
