@@ -7,14 +7,16 @@ import PrintJavalette
 import ErrM
 
 addIOFun :: Env -> Env
-addIOFun env = extendFun 
+addIOFun env = extendFun (extendFun
                 (extendFun 
                     (extendFun 
                         (extendFun env readInt) 
                         printInt)
                     readDouble)
-                printDouble
+                printDouble) printString
 
+printString :: TopDef
+printString = FnDef Void (Ident "printString") [Arg Str (Ident "arg")] (Block []) 
 readInt :: TopDef
 readInt  = FnDef Int  (Ident "readInt")  [] (Block [])
 printInt :: TopDef

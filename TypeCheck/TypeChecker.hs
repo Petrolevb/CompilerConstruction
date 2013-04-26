@@ -2,12 +2,12 @@ module TypeChecker where
 
 import LexJavalette
 import ParJavalette
-import AbsJavalette
+import AbsJavalette as ABS
 
 import ErrM
 import Control.Monad.State
 
-import AnnotatedAbs
+import AnnotatedAbs as TYP
 
 import Context
 import BuildEnv
@@ -37,9 +37,9 @@ typedefs td = do
     checkTopDef td
 
 checkTopDef :: TopDef -> ErrTypeCheck AnnotatedTopDef
-checkTopDef (AbsJavalette.FnDef t i args block) = do
+checkTopDef (ABS.FnDef t i args block) = do
     annoBlock <- checkBlock block
-    return (AnnotatedAbs.FnDef t i args annoBlock)
+    return (TYP.FnDef t i args annoBlock)
 
 
 checkBlock :: Block -> ErrTypeCheck AnnotatedBlock
@@ -84,17 +84,17 @@ checkItem typeItem (Init ident exp) = do
         else fail ("Type Error: " ++ show ident ++ "=" ++ show exp)
 
 checkStmt :: Stmt -> ErrTypeCheck AnnotatedStmt
-checkStmt  AbsJavalette.Empty                      = return AnnotatedAbs.Empty
-checkStmt (AbsJavalette.VRet)                      = return AnnotatedAbs.VRet
-checkStmt (AbsJavalette.BStmt block)               = do
+checkStmt  ABS.Empty                      = return TYP.Empty
+checkStmt (ABS.VRet)                      = return TYP.VRet
+checkStmt (ABS.BStmt block)               = do
     annoBlock <- checkBlock block
-    return (AnnotatedAbs.BStmt annoBlock)
+    return (TYP.BStmt annoBlock)
 
-checkStmt (AbsJavalette.Decl typeDecl items)       = do
+checkStmt (ABS.Decl typeDecl items)       = do
     mapM_ (checkItem typeDecl) items -- update env
-    return (AnnotatedAbs.Decl typeDecl items)
+    return (TYP.Decl typeDecl items)
 
-checkStmt (AbsJavalette.Ass ident expr)            = do
+checkStmt (ABS.Ass ident expr)            = do
     typeExpr <- infer expr
     annoExp <- checkExp expr typeExpr
     env <- get
@@ -102,59 +102,59 @@ checkStmt (AbsJavalette.Ass ident expr)            = do
         Bad s1 -> case lookupInFun ident env of
             Bad s2 -> fail (s1 ++ " " ++ s2)
             Ok   t -> if t == typeExpr 
-                        then return (AnnotatedAbs.Ass ident annoExp) 
+                        then return (TYP.Ass ident annoExp) 
                         else fail ("Type Error: " ++ show ident ++ "=" ++ show expr)
         Ok   t -> if t == typeExpr 
-                    then return (AnnotatedAbs.Ass ident annoExp) 
+                    then return (TYP.Ass ident annoExp) 
                     else fail ("Type Error: " ++ show ident ++ "=" ++ show expr)
 
-checkStmt (AbsJavalette.Incr ident)                = do
+checkStmt (ABS.Incr ident)                = do
     env <- get
     case lookupVar ident env of
         Bad s1 -> case lookupInFun ident env of
             Bad s2 -> fail (s1 ++ " " ++ s2)
             Ok   t -> if t == Int 
-                        then return (AnnotatedAbs.Incr ident) 
+                        then return (TYP.Incr ident) 
                         else fail ("Type Error: " ++ show ident ++ "++")
         Ok   t -> if t == Int 
-                    then return (AnnotatedAbs.Incr ident) 
+                    then return (TYP.Incr ident) 
                     else fail ("Type Error: " ++ show ident ++ "++")
-checkStmt (AbsJavalette.Decr ident)                = do
+checkStmt (ABS.Decr ident)                = do
     env <- get
     case lookupVar ident env of
         Bad s1 -> case lookupInFun ident env of
             Bad s2 -> fail (s1 ++ " " ++ s2)
             Ok   t -> if t == Int 
-                        then return (AnnotatedAbs.Decr ident) 
+                        then return (TYP.Decr ident) 
                         else fail ("Type Error: " ++ show ident ++ "++")
         Ok   t -> if t == Int 
-                    then return (AnnotatedAbs.Decr ident) 
+                    then return (TYP.Decr ident) 
                     else fail ("Type Error: " ++ show ident ++ "++")
 
-checkStmt (AbsJavalette.Ret expr)                  = do
+checkStmt (ABS.Ret expr)                  = do
     t <- infer expr
     annoExpr <- checkExp expr t
-    return (AnnotatedAbs.Ret annoExpr)
-checkStmt (AbsJavalette.Cond expr stmt)            = do
+    return (TYP.Ret annoExpr)
+checkStmt (ABS.Cond expr stmt)            = do
     t <- infer expr
     annoExpr <- checkExp expr t
     annoStmt <- checkStmt stmt
-    return (AnnotatedAbs.Cond annoExpr annoStmt)
-checkStmt (AbsJavalette.CondElse expr stmt1 stmt2) = do
+    return (TYP.Cond annoExpr annoStmt)
+checkStmt (ABS.CondElse expr stmt1 stmt2) = do
     t <- infer expr
     annoExpr <- checkExp expr t
     s1 <- checkStmt stmt1
     s2 <- checkStmt stmt2
-    return (AnnotatedAbs.CondElse annoExpr s1 s2)
-checkStmt (AbsJavalette.While expr stmt)           = do
+    return (TYP.CondElse annoExpr s1 s2)
+checkStmt (ABS.While expr stmt)           = do
     t <- infer expr
     annoExpr <- checkExp expr t
     annoStmt <- checkStmt stmt
-    return (AnnotatedAbs.While annoExpr annoStmt)
-checkStmt (AbsJavalette.SExp expr) = do
+    return (TYP.While annoExpr annoStmt)
+checkStmt (ABS.SExp expr) = do
     t <- infer expr
     annoExpr <- checkExp expr t
-    return (AnnotatedAbs.SExp annoExpr)
+    return (TYP.SExp annoExpr)
 
 typeResult :: Bool -> String -> ErrTypeCheck ()
 typeResult False s = fail $ "Type Error : " ++ s
@@ -162,69 +162,60 @@ typeResult True  _ = return ()
 
 -- Check type of exp
 checkExp :: Expr -> Type -> ErrTypeCheck AnnotatedExp
-checkExp ELitTrue      Bool = return (ELitTrue, Bool) 
-checkExp ELitFalse     Bool = return (ELitFalse, Bool)
-checkExp (ELitInt  i ) Int  = return (ELitInt i, Int)
-checkExp (ELitDoub d ) Doub = return (ELitDoub d, Doub)
-checkExp (EVar      id) t    = do
-         tId <- infer (EVar id)
+checkExp ABS.ELitTrue      Bool = return $ TYP.ELitTrue Bool
+checkExp ABS.ELitFalse     Bool = return $ TYP.ELitFalse Bool
+checkExp (ABS.ELitInt  i ) Int  = return $ TYP.ELitInt i Int
+checkExp (ABS.ELitDoub d ) Doub = return $ TYP.ELitDoub d Doub
+checkExp (ABS.EVar      id) t    = do
+         tId <- infer (ABS.EVar id)
          typeResult (tId == t) "check exp Evar"
-         return (EVar id, t)
-checkExp (EApp id exp) t    = do
+         return $ TYP.EVar id t
+checkExp (ABS.EApp id exp) t    = do
          env <- get
          case lookupFun id env of
               Bad s -> do
-                    typeResult False "checkexp EApp : lookupFun fail"
-                    return (ELitFalse, Void)
+                    typeResult False ("checkexp EApp : lookupFun fail " ++ s)
+                    return $ TYP.ELitFalse Void
               Ok (tysids,typeFun) ->
                  do typeResult (t == typeFun) "checkExp EApp"
                     -- Same number of argument as requested
                     typeResult (length exp == length tysids) "checkExp EApp : length exp /= length args"
-                    checkAllArgs tysids exp
-                    return (EApp id exp, t)
-                    where
-                        checkAllArgs [] [] = return (ELitTrue, Void)
-                        checkAllArgs [(ty, _)] [exp] = 
-                                     checkExp exp ty
-                        checkAllArgs ((ty,_):tysids) (exp:exps) = do
-                                     checkExp exp ty
-                                     checkAllArgs tysids exps
-checkExp (EString s)   t      = undefined -- return (EString s, String)
-checkExp (Neg e)       t      = do
+                    expArgs <- checkAllArgs tysids exp
+                    return $ TYP.EApp id expArgs t
+                    where checkAllArgs tys es = mapM (\((ty,_) ,e) -> checkExp e ty) (zip tys es)
+checkExp (ABS.EString s)   t      = return $ TYP.EString s Str 
+checkExp (ABS.Neg e)       t      = do
          te <- infer e
          typeResult (te == t) "checkExp Neg"
-         return (Neg e, t)
-checkExp (Not e) Bool         = do
+         ne <- checkExp e t
+         return $ TYP.Neg ne t
+checkExp (ABS.Not e) Bool         = do
          te <- infer e
          typeResult (te == Bool) "checkExp Not"
-         return (Not e, Bool)
-checkExp (EMul e1 op e2) t    = 
+         ne <- checkExp e Bool
+         return $ TYP.Not ne Bool
+checkExp (ABS.EMul e1 op e2) t    = do
+         ne1 <- checkExp e1 t
+         ne2 <- checkExp e2 t
          case op of
-              Mod -> do te1 <- checkList e1 e2 [Int]
-                        typeResult (te1 == t) "checkExp EMul"
-                        return (EMul e1 op e2, t)
-              _   -> do te1 <- checkList e1 e2 [Int, Doub]
-                        typeResult (te1 == t) "checkExp Emul"
-                        return (EMul e1 op e2, t)
-checkExp (EAdd e1 op e2) t    = do
-         te1 <- checkList e1 e2 [Int, Doub]
-         typeResult(te1 == t) "checkExp EAdd"
-         return (EAdd e1 op e2, t)
-checkExp (ERel e1 op e2) Bool = do
-         te1 <- checkList e1 e2 [Int, Doub]
-<<<<<<< HEAD:TypeCheck/TypeChecker.hs
---         typeResult (te1 == Bool)
-=======
->>>>>>> e503fac39016a38bdf69f09fe3b93884c6f34fac:TypeCheck/TypeChecker.hs
-         return (ERel e1 op e2, Bool)
-checkExp (EAnd e1 e2) Bool    = do
-         checkBool e1 e2
-         return (EAnd e1 e2, Bool)
-checkExp (EOr e1 e2) Bool     = do
-         checkBool e1 e2
-         return (EOr e1 e2, Bool)
-checkExp _ _                  = do typeResult False  "checkExp inconnu"
-                                   return (ELitFalse, Void)
+              Mod -> return $ TYP.EMul ne1 op ne2 t
+              _   -> return $ TYP.EMul ne1 op ne2 t
+checkExp (ABS.EAdd e1 op e2) t    = do
+         ne1 <- checkExp e1 t
+         ne2 <- checkExp e2 t
+         return $ TYP.EAdd ne1 op ne2 t
+checkExp (ABS.ERel e1 op e2) Bool = do
+         te1 <- infer e1
+         ne1 <- checkExp e1 te1
+         ne2 <- checkExp e2 te1
+         return $ TYP.ERel ne1 op ne2 Bool
+checkExp (ABS.EAnd e1 e2) Bool    = do
+         (ne1, ne2) <- checkBool e1 e2
+         return $ TYP.EAnd ne1 ne2 Bool
+checkExp (ABS.EOr e1 e2) Bool     = do
+         (ne1, ne2) <- checkBool e1 e2
+         return $ TYP.EOr ne1 ne2 Bool
+checkExp _ _                  = fail "checkExp inconnu"
 
 checkList :: Expr -> Expr -> [Type] -> ErrTypeCheck Type
 checkList e1 e2 ts = do
@@ -233,48 +224,51 @@ checkList e1 e2 ts = do
         typeResult (te1 `elem` ts) ("check List " ++ show te1 ++ " not in " ++ show ts)
         return te1
 
-checkBool :: Expr -> Expr -> ErrTypeCheck Type
+checkBool :: Expr -> Expr -> ErrTypeCheck (AnnotatedExp, AnnotatedExp)
 checkBool e1 e2 = do
-          checkExp e1 Bool
-          checkExp e2 Bool
-          return Bool
+    ne1 <- checkExp e1 Bool
+    ne2 <- checkExp e2 Bool
+    return (ne1, ne2)
 
 -- Infer type of exp
 infer :: Expr -> ErrTypeCheck Type
-infer (ELitTrue)     = return Bool
-infer (ELitFalse)    = return Bool
-infer (ELitInt i)    = return Int
-infer (ELitDoub d)   = return Doub
-infer (EVar id)      = do
+infer (ABS.ELitTrue)     = return Bool
+infer (ABS.ELitFalse)    = return Bool
+infer (ABS.ELitInt i)    = return Int
+infer (ABS.ELitDoub d)   = return Doub
+infer (ABS.EVar id)      = do
       env <- get
       case lookupVar id env of
            Bad _ -> case lookupInFun id env of
                          Bad _   -> return Void
                          Ok  tId -> return tId
            Ok tId  -> return tId
-infer (EApp id exos) = do
+infer (ABS.EApp id exos) = do
       env <- get
       case lookupFun id env of
            Bad _ -> return Void
            Ok (_, typeFun) -> return typeFun
-infer (EString s) = undefined -- return (EString s, String)
-infer (Neg e)     = do
+infer (ABS.EString s) = return Str
+infer (ABS.Neg e)     = do
       te <- infer e
       typeResult (te `elem` [Int, Doub]) "infer Neg"
       return te
-infer (Not e)     = do
+infer (ABS.Not e)     = do
       te <- infer e
       typeResult (te == Bool) "infer not"
       return Bool
-infer (EMul e1 op e2) = 
+infer (ABS.EMul e1 op e2) = 
       case op of
            Mod -> do checkList e1 e2 [Int]
                      return Int
            _   -> checkList e1 e2 [Int, Doub]
-infer (EAdd e1 op e2) = checkList e1 e2 [Int, Doub]
-infer (ERel e1 op e2) = do
-      checkList e1 e2 [Int, Doub]
+infer (ABS.EAdd e1 op e2) = checkList e1 e2 [Int, Doub]
+infer (ABS.ERel e1 op e2) = do
+      checkList e1 e2 [Int, Doub, Bool]
       return Bool
-infer (EAnd e1 e2) = checkBool e1 e2
-infer (EOr e1 e2)  = checkBool e1 e2
+infer (ABS.EAnd e1 e2) = infer (ABS.EOr e1 e2) 
+infer (ABS.EOr e1 e2)  = do
+    t <- infer e1
+    checkExp e2 t
+    return t
 
