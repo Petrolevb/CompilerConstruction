@@ -226,17 +226,17 @@ genDecl t is = mapM_  (genItem t) is
 
 
 getType :: AnnotatedExp -> Type
-getType (TYP.EVar _ t) = t
-getType (TYP.ELitInt _ t) = t
+getType (TYP.EVar     _ t) = t
+getType (TYP.ELitInt  _ t) = t
 getType (TYP.ELitDoub _ t) = t
-getType (TYP.ELitTrue t) = t
-getType (TYP.ELitFalse t) = t
-getType (TYP.EApp _ _ t) = t
-getType (TYP.EString _ t) = t
-getType (TYP.Neg _ t) = t
-getType (TYP.Not _ t) = t
+getType (TYP.ELitTrue t)   = t
+getType (TYP.ELitFalse t)  = t
+getType (TYP.EApp _ _ t)   = t
+getType (TYP.EString _ t)  = t
+getType (TYP.Neg _ t)      = t
+getType (TYP.Not _ t)      = t
 getType (TYP.EMul _ _ _ t) = t
 getType (TYP.EAdd _ _ _ t) = t
 getType (TYP.ERel _ _ _ t) = t
-getType (TYP.EAnd _ _ t) = t
-getType (TYP.EOr _ _ t) = t
+getType (TYP.EAnd _ _ t)   = t
+getType (TYP.EOr _ _ t)    = t
