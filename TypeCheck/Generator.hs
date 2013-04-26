@@ -163,18 +163,18 @@ genExp (TYP.EMul e1 Times e2 typeExp)  = do
     genExp e1
     genExp e2 
     case typeExp of
-        Int  -> returnCode "imul"
-        Doub -> returnCode "dmul"
+        Int  -> returnCode "imul\n"
+        Doub -> returnCode "dmul\n"
 genExp (TYP.EMul e1 Div e2 typeExp)    = do
     genExp e1 
     genExp e2
     case typeExp of
-        Int  -> returnCode "idiv"
-        Doub -> returnCode "ddiv"
+        Int  -> returnCode "idiv\n"
+        Doub -> returnCode "ddiv\n"
 genExp (TYP.EMul e1 Mod e2 typeExp)    = do
     genExp e1
     genExp e2
-    returnCode "irem" 
+    returnCode "irem\n" 
 genExp (TYP.EAdd e1 Plus e2 typeExp)   = do
     genExp e1
     genExp e2
