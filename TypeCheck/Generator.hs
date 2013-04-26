@@ -93,7 +93,23 @@ genStmt (TYP.Ret exp)             = do
 genStmt TYP.VRet                  = returnCode "ireturn\n"
 genStmt (TYP.Cond (TYP.ELitTrue _) stmt)  = genStmt stmt
 genStmt (TYP.Cond (TYP.ELitFalse _) stmt) = returnCode ""
-genStmt (TYP.Cond exp stmt)       = do
+genStmt (TYP.Cond (TYP.EOr e1 e2 t) stmt)       = do
+    env <- get
+    let lab1 = getLabel env
+    let tmpEnv = incrLabel env
+    let lab2 = getLabel tmpEnv
+    let tmpEnv2 = incrLabel tmpEnv
+    let tmpEnv3 = pushLabel tmpEnv2 lab2
+    put $ pushLabel tmpEnv3 lab1
+    genExp (TYP.EOr e1 e2 t)
+    returnCode $ lab1 ++ ":\n"
+    env <- get
+    put $ popLabel env
+    genStmt stmt
+    returnCode $ lab2 ++ ":\n"
+    env <- get
+    put $ popLabel env
+genStmt (TYP.Cond exp stmt) = do
     env <- get
     let lab1 = getLabel env
     let tmpEnv = incrLabel env
@@ -108,6 +124,28 @@ genStmt (TYP.CondElse exp s1 TYP.Empty)  = do
     fail $ "Empty branch exist in " ++ (getNameFunc env) ++ " in a if else statement"
 genStmt (TYP.CondElse (TYP.ELitTrue _) s _)  = genStmt s
 genStmt (TYP.CondElse (TYP.ELitFalse _) _ s) = genStmt s
+genStmt (TYP.CondElse (TYP.EOr e1 e2 t) s1 s2)       = do
+    env <- get
+    let lab1 = getLabel env
+    let tmpEnv = incrLabel env
+    let lab2 = getLabel tmpEnv
+    let tmpEnv1 = incrLabel tmpEnv
+    let tmpEnv2 = pushLabel tmpEnv1 lab2
+    let lab3 = getLabel tmpEnv2
+    let tmpEnv3 = incrLabel tmpEnv2
+    put $ pushLabel tmpEnv3 lab1
+    genExp (TYP.EOr e1 e2 t)
+    returnCode $ lab1 ++ ":\n"
+    env <- get
+    put $ popLabel env
+    genStmt s1
+    returnCode $ lab2 ++ ":\n"
+    env <- get
+    put $ popLabel env
+    genStmt s2
+    returnCode $ lab3 ++ ":\n"
+    env <- get
+    put $ popLabel env
 genStmt (TYP.CondElse exp s1 s2)  = do
     env <- get
     let lab1 = (getLabel env)
@@ -119,11 +157,28 @@ genStmt (TYP.CondElse exp s1 s2)  = do
     genStmt s1
     returnCode $ "goto " ++ lab2 ++ "\n"
     returnCode $ lab1 ++ ":\n"
-    env2 <- get
-    put $ popLabel env2
+    env <- get
+    put $ popLabel env
     genStmt s2
-    returnCode $ lab2 ++ ":\n"    
+    returnCode $ lab2 ++ ":\n"
 
+genStmt (TYP.While (TYP.EOr e1 e2 t) s1)       = do
+    env <- get
+    let lab1 = getLabel env
+    let tmpEnv = incrLabel env
+    let lab2 = getLabel tmpEnv
+    let tmpEnv1 = incrLabel tmpEnv
+    let tmpEnv2 = pushLabel tmpEnv1 lab2
+    put $ pushLabel tmpEnv2 lab1
+    genExp (TYP.EOr e1 e2 t)
+    returnCode $ lab1 ++ ":\n"
+    env <- get
+    put $ popLabel env
+    genStmt s1
+    returnCode $ "goto " ++ lab1 ++ "\n"
+    returnCode $ lab2 ++ ":\n"
+    env <- get
+    put $ popLabel env
 genStmt (TYP.While exp stmt) = do
     env <- get
     let lab1 = (getLabel env)
@@ -135,9 +190,11 @@ genStmt (TYP.While exp stmt) = do
     genStmt stmt
     returnCode $ "goto " ++ lab1 ++ "\n"
     returnCode $ lab2 ++ ":\n"
-    env2 <- get
-    put $ popLabel env2
+    env <- get
+    put $ popLabel env
+
 genStmt (TYP.SExp exp)                = genExp exp
+
 
 
 
@@ -222,15 +279,31 @@ genExp (TYP.ERel e1 EQU e2 t)  = do
         _    -> genConditionInt e1 e2 "if_icmpne"
 genExp (TYP.ERel e1 NE e2 t)   = do 
     let typeExp = getType e1
-    env <- get
     case typeExp of
         Doub -> genConditionDouble e1 e2 "dcmpl" "ifeq"
         _    -> genConditionInt e1 e2 "if_icmpeq"
 
--- TODO !!
-genExp (TYP.EAnd e1 e2 typeExp)      = returnCode "EAnd\n"
-genExp (TYP.EOr e1 e2 typeExp)       = returnCode "EOr\n"
---TODO
+genExp (TYP.EAnd e1 e2 typeExp) = do
+       genExp e1
+       genExp e2
+genExp (TYP.EOr e1 e2 typeExp)  = do
+       genExpOr e1
+       env <- get
+       put $ popLabel env
+       genExpOr e2
+
+genExpOr (TYP.ERel e1 th e2 t) = do
+    let typeExp = getType e1
+    case typeExp of
+        Int  -> genConditionInt e1 e2 ("if_cmp" ++ s1)
+        Doub -> genConditionDouble e1 e2 "dcmpl" ("if" ++ s1)
+  where s1 = case th of
+                  LTH -> "lt"
+                  LE  -> "le"
+                  GTH -> "gt"
+                  GE  -> "ge"
+                  EQU -> "eq"
+                  NE  -> "ne"
 
 genConditionDouble :: AnnotatedExp -> AnnotatedExp -> String -> String -> GenState ()
 genConditionDouble e1 e2 s1 s2= do
