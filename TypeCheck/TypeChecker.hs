@@ -180,47 +180,42 @@ checkExp (ABS.EApp id exp) t    = do
                  do typeResult (t == typeFun) "checkExp EApp"
                     -- Same number of argument as requested
                     typeResult (length exp == length tysids) "checkExp EApp : length exp /= length args"
-                    checkAllArgs tysids exp
-                    return $ TYP.EApp id exp t
-                    where
-                        checkAllArgs [] [] = return $ TYP.ELitTrue Void
-                        checkAllArgs [(ty, _)] [exp] = 
-                                     checkExp exp ty
-                        checkAllArgs ((ty,_):tysids) (exp:exps) = do
-                                     checkExp exp ty
-                                     checkAllArgs tysids exps
+                    expArgs <- checkAllArgs tysids exp
+                    return $ TYP.EApp id expArgs t
+                    where checkAllArgs tys es = mapM (\((ty,_) ,e) -> checkExp e ty) (zip tys es)
 checkExp (ABS.EString s)   t      = return $ TYP.EString s Str 
 checkExp (ABS.Neg e)       t      = do
          te <- infer e
          typeResult (te == t) "checkExp Neg"
-         return $ TYP.Neg e t
+         ne <- checkExp e t
+         return $ TYP.Neg ne t
 checkExp (ABS.Not e) Bool         = do
          te <- infer e
          typeResult (te == Bool) "checkExp Not"
-         return $ TYP.Not e Bool
-checkExp (ABS.EMul e1 op e2) t    = 
+         ne <- checkExp e Bool
+         return $ TYP.Not ne Bool
+checkExp (ABS.EMul e1 op e2) t    = do
+         ne1 <- checkExp e1 t
+         ne2 <- checkExp e2 t
          case op of
-              Mod -> do te1 <- checkList e1 e2 [Int]
-                        typeResult (te1 == t) "checkExp EMul"
-                        return $ TYP.EMul e1 op e2 t
-              _   -> do te1 <- checkList e1 e2 [Int, Doub]
-                        typeResult (te1 == t) "checkExp Emul"
-                        return $ TYP.EMul e1 op e2 t
+              Mod -> return $ TYP.EMul ne1 op ne2 t
+              _   -> return $ TYP.EMul ne1 op ne2 t
 checkExp (ABS.EAdd e1 op e2) t    = do
-         te1 <- checkList e1 e2 [Int, Doub]
-         typeResult(te1 == t) "checkExp EAdd"
-         return $ TYP.EAdd e1 op e2 t
+         ne1 <- checkExp e1 t
+         ne2 <- checkExp e2 t
+         return $ TYP.EAdd ne1 op ne2 t
 checkExp (ABS.ERel e1 op e2) Bool = do
-         te1 <- checkList e1 e2 [Int, Doub, Bool]
-         return $ TYP.ERel e1 op e2 Bool
+         te1 <- infer e1
+         ne1 <- checkExp e1 te1
+         ne2 <- checkExp e2 te1
+         return $ TYP.ERel ne1 op ne2 Bool
 checkExp (ABS.EAnd e1 e2) Bool    = do
-         checkBool e1 e2
-         return $ TYP.EAnd e1 e2 Bool
+         (ne1, ne2) <- checkBool e1 e2
+         return $ TYP.EAnd ne1 ne2 Bool
 checkExp (ABS.EOr e1 e2) Bool     = do
-         checkBool e1 e2
-         return $ TYP.EOr (checkExp e1) (checkExp e2) Bool
-checkExp _ _                  = do typeResult False  "checkExp inconnu"
-                                   return $ TYP.ELitFalse Void
+         (ne1, ne2) <- checkBool e1 e2
+         return $ TYP.EOr ne1 ne2 Bool
+checkExp _ _                  = fail "checkExp inconnu"
 
 checkList :: Expr -> Expr -> [Type] -> ErrTypeCheck Type
 checkList e1 e2 ts = do
@@ -229,11 +224,11 @@ checkList e1 e2 ts = do
         typeResult (te1 `elem` ts) ("check List " ++ show te1 ++ " not in " ++ show ts)
         return te1
 
-checkBool :: Expr -> Expr -> ErrTypeCheck Type
+checkBool :: Expr -> Expr -> ErrTypeCheck (AnnotatedExp, AnnotatedExp)
 checkBool e1 e2 = do
-          checkExp e1 Bool
-          checkExp e2 Bool
-          return Bool
+    ne1 <- checkExp e1 Bool
+    ne2 <- checkExp e2 Bool
+    return (ne1, ne2)
 
 -- Infer type of exp
 infer :: Expr -> ErrTypeCheck Type
@@ -271,6 +266,9 @@ infer (ABS.EAdd e1 op e2) = checkList e1 e2 [Int, Doub]
 infer (ABS.ERel e1 op e2) = do
       checkList e1 e2 [Int, Doub, Bool]
       return Bool
-infer (ABS.EAnd e1 e2) = checkBool e1 e2
-infer (ABS.EOr e1 e2)  = checkBool e1 e2
+infer (ABS.EAnd e1 e2) = infer (ABS.EOr e1 e2) 
+infer (ABS.EOr e1 e2)  = do
+    t <- infer e1
+    checkExp e2 t
+    return t
 
