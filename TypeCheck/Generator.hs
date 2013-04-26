@@ -40,7 +40,7 @@ genTopDef (TYP.FnDef typeFn ident args block) = do
     returnCode $ ".limit locals " ++ (show local) ++ "\n"
     returnCode $ ".limit stack " ++ (show stack) ++ "\nentry:\n" 
     genBlock block
-
+    returnCode $ ".end method"
 
 genBlock :: AnnotatedBlock -> GenState ()
 genBlock = undefined
@@ -143,13 +143,10 @@ genExp (EMul e1 Div e2, typeExp)    = do
     case typeExp of
         Int  -> returnCode "idiv"
         Doub -> returnCode "ddiv"
-genExp (EMul e1 Mod e2, typeExp)    = undefined 
-{-
-do
+genExp (EMul e1 Mod e2, typeExp)    = do
     genExp (e1, typeExp)
     genExp (e2, typeExp)
-    returnCode "" 
--}
+    returnCode "irem" 
 genExp (EAdd e1 Plus e2, typeExp)   = do
     genExp (e1, typeExp)
     genExp (e2, typeExp)
