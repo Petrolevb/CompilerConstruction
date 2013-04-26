@@ -39,6 +39,7 @@ run v p s =
                                 putStrV v $ "\nFail to anotate : " ++ s 
                             Ok at  -> do 
                                 generation at
+                                -- java -jar lib/jasmin.jar a.j
                                 ioError (userError "OK")
 
 main :: IO ()
