@@ -124,9 +124,8 @@ genExp (TYP.EVar ident typeExp)        = do
     env <- get
     let pos = snd $ getMemory env ident
     case typeExp of
-        Int  -> returnCode $ "iload " ++ show pos ++ "\n"
-        Bool -> returnCode $ "iload " ++ show pos ++ "\n"
         Doub -> returnCode $ "dload " ++ show pos ++ "\n"
+        _    -> returnCode $ "iload " ++ show pos ++ "\n"
 genExp (TYP.ELitInt int _)             = returnCode $ "ldc " ++ show int ++ "\n"
 genExp (TYP.ELitDoub double _)         = returnCode $ "ldc2_w " ++ show double ++ "\n"
 genExp (TYP.ELitTrue _)                = returnCode $ "iconst_1" ++ "\n"
@@ -166,30 +165,37 @@ genExp (TYP.EAdd e1 Minus e2 typeExp)  = do
         Int  -> returnCode "isub\n"
         Doub -> returnCode "dsub\n"
 
-genExp (TYP.ERel e1 LTH e2 typeExp)  = case typeExp of
-    Int  -> genConditionInt e1 e2 "if_icmplt"
-    Doub -> genConditionDouble e1 e2 "dcmpl" "iflt"
-    Bool -> fail $ "Type bool here ???? " ++ show e1 ++ "<" ++ show e2
-genExp (TYP.ERel e1 LE e2 typeExp)   = case typeExp of
-    Int  -> genConditionInt e1 e2 "if_icmple"
-    Doub -> genConditionDouble e1 e2 "dcmpl" "ifle"
-    Bool -> fail $ "Type bool here ????" ++ show e1 ++ "<=" ++ show e2
-genExp (TYP.ERel e1 GTH e2 typeExp)  = case typeExp of
-    Int  -> genConditionInt e1 e2 "if_icmpgt"
-    Doub -> genConditionDouble e1 e2 "dcmpg" "ifgt"
-    Bool -> fail $ "Type bool here ????" ++ show e1 ++ ">" ++ show e2
-genExp (TYP.ERel e1 GE e2 typeExp)   = case typeExp of
-    Int  -> genConditionInt e1 e2 "if_icmpge"
-    Doub -> genConditionDouble e1 e2 "dcmpg" "ifge"
-    Bool -> fail $ "Type bool here ????" ++ show e1 ++ ">=" ++ show e2
-genExp (TYP.ERel e1 EQU e2 typeExp)  = case typeExp of
-    Int  -> genConditionInt e1 e2 "if_icmpeq"
-    Bool -> genConditionInt e1 e2 "if_icmpeq"
-    Doub -> genConditionDouble e1 e2 "dcmpl" "ifeq"
-genExp (TYP.ERel e1 NE e2 typeExp)   = case typeExp of
-    Int  -> genConditionInt e1 e2 "if_icmpne"
-    Bool -> genConditionInt e1 e2 "if_icmpne"
-    Doub -> genConditionDouble e1 e2 "dcmpl" "ifne"
+genExp (TYP.ERel e1 LTH e2 t)  = do
+    typeExp <- getType e1
+    case typeExp of
+        Int  -> genConditionInt e1 e2 "if_icmplt"
+        Doub -> genConditionDouble e1 e2 "dcmpl" "iflt"
+genExp (TYP.ERel e1 LE e2 t)   = do 
+    typeExp <- getType e1
+    case typeExp of
+        Int  -> genConditionInt e1 e2 "if_icmple"
+        Doub -> genConditionDouble e1 e2 "dcmpl" "ifle"
+genExp (TYP.ERel e1 GTH e2 t)  = do 
+    typeExp <- getType e1
+    case typeExp of
+        Int  -> genConditionInt e1 e2 "if_icmpgt"
+        Doub -> genConditionDouble e1 e2 "dcmpg" "ifgt"
+genExp (TYP.ERel e1 GE e2 t)   = do 
+    typeExp <- getType e1
+    case typeExp of
+        Int  -> genConditionInt e1 e2 "if_icmpge"
+        Doub -> genConditionDouble e1 e2 "dcmpg" "ifge"
+genExp (TYP.ERel e1 EQU e2 t)  = do 
+    typeExp <- getType e1
+    case typeExp of
+        Doub -> genConditionDouble e1 e2 "dcmpl" "ifeq"
+        _    -> genConditionInt e1 e2 "if_icmpeq"
+genExp (TYP.ERel e1 NE e2 t)   = do 
+    typeExp <- getType e1
+    case typeExp of
+        Doub -> genConditionDouble e1 e2 "dcmpl" "ifne"
+        _    -> genConditionInt e1 e2 "if_icmpne"
+
 
 genExp (TYP.EAnd e1 e2 typeExp)      = returnCode "EAnd\n"
 genExp (TYP.EOr e1 e2 typeExp)       = returnCode "EOr\n"
