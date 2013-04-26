@@ -48,8 +48,11 @@ mapArgs mv _ [] = mv
 mapArgs mv i ((Arg typeA ident):args) = mapArgs (mv ++ [(typeA, ident, i)]) (i+1) args
 
 
+<<<<<<< HEAD:TypeCheck/GeneratorContext.hs
+=======
 
 
 getLocalaStackSize :: AnnotatedBlock -> (Int, Int)
 getLocalaStackSize _ = (0, 0)
 
+>>>>>>> e503fac39016a38bdf69f09fe3b93884c6f34fac:TypeCheck/GeneratorContext.hs
