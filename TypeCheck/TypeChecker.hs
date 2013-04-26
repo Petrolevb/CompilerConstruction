@@ -38,6 +38,10 @@ typedefs td = do
 
 checkTopDef :: TopDef -> ErrTypeCheck AnnotatedTopDef
 checkTopDef (ABS.FnDef t i args block) = do
+    sav <- get
+    tFun <- inferFun block
+    put sav
+    typeResult (tFun == t) ("Error : Not right return type function " ++ show i ++ " type " ++ show t ++ " vs " ++ show tFun)
     annoBlock <- checkBlock block
     return (TYP.FnDef t i args annoBlock)
 
@@ -142,11 +146,15 @@ checkStmt (ABS.Ret expr)                  = do
     t <- infer expr
     annoExpr <- checkExp expr t
     return (TYP.Ret annoExpr)
+checkStmt (ABS.Cond (ABS.ELitTrue) stmt)  = checkStmt stmt
+checkStmt (ABS.Cond (ABS.ELitFalse) stmt) = return TYP.Empty
 checkStmt (ABS.Cond expr stmt)            = do
     t <- infer expr
     annoExpr <- checkExp expr t
     annoStmt <- checkStmt stmt
     return (TYP.Cond annoExpr annoStmt)
+checkStmt (ABS.CondElse (ABS.ELitTrue) s1 _)  = checkStmt s1
+checkStmt (ABS.CondElse (ABS.ELitFalse) _ s2) = checkStmt s2
 checkStmt (ABS.CondElse expr stmt1 stmt2) = do
     t <- infer expr
     annoExpr <- checkExp expr t
@@ -237,6 +245,63 @@ checkBool e1 e2 = do
     ne2 <- checkExp e2 Bool
     return (ne1, ne2)
 
+inferFun :: Block -> ErrTypeCheck Type
+inferFun (ABS.Block stmts) = inferBlock stmts
+
+inferBlock :: [Stmt] -> ErrTypeCheck Type
+inferBlock []            = return Void
+inferBlock [s]           = do 
+    (t, b) <-inferStmt s
+    return t
+inferBlock (ABS.VRet:_)  = return Void
+inferBlock (ABS.Ret e:_) = infer e
+inferBlock (s:ss)        = do
+    (t, b) <- inferStmt s
+    if b 
+        then return t
+        else inferBlock ss
+inferStmt :: Stmt -> ErrTypeCheck (Type, Bool)
+inferStmt (ABS.Ret e)                      = do 
+    t <- infer e
+    return (t, False)
+inferStmt (ABS.Decl t items)               = do
+   env <- get
+   case update env t items of
+        Bad s -> fail s
+        Ok ne -> put ne
+   return (Void, False)
+    where 
+        update e _ [] = Ok e
+        update e t ((ABS.NoInit ident):is) = 
+            case extendVar e ident t of
+                Bad s -> Bad s
+                Ok ne -> update ne t is
+        update e t ((ABS.Init ident _):is) = 
+            case extendVar e ident t of
+                Bad s -> Bad s
+                Ok ne -> update ne t is
+
+inferStmt (ABS.BStmt b)                    = do 
+    env <- get
+    put $ newBlock env
+    t <- inferFun b
+    env <- get
+    put $ removeBlock env
+    return (t, False)
+
+inferStmt (ABS.Cond ABS.ELitTrue s)        = inferStmt s
+inferStmt (ABS.CondElse ABS.ELitTrue s _)  = inferStmt s
+inferStmt (ABS.CondElse ABS.ELitFalse _ s) = inferStmt s
+inferStmt (ABS.CondElse e s1 s2)           = do
+    (t1, b1) <- inferStmt s1
+    (t2, b2) <- inferStmt s2
+    typeResult (t1 == t2) ("Error : mismatch type in if-else statement " ++ show t1 ++ " vs " ++ show t2)
+    return (t1, b1)
+inferStmt (ABS.While e s)                  = inferStmt s
+inferStmt (ABS.VRet)                       = return (Void, True)
+inferStmt _                                = return (Void, False)
+
+
 -- Infer type of exp
 infer :: Expr -> ErrTypeCheck Type
 infer (ABS.ELitTrue)     = return Bool
@@ -253,7 +318,7 @@ infer (ABS.EVar id)      = do
 infer (ABS.EApp id exos) = do
       env <- get
       case lookupFun id env of
-           Bad _ -> return Void
+           Bad s -> fail s
            Ok (_, typeFun) -> return typeFun
 infer (ABS.EString s) = return Str
 infer (ABS.Neg e)     = do
