@@ -172,20 +172,26 @@ genExp (EAdd e1 Minus e2, typeExp)  = do
 genExp (ERel e1 LTH e2, typeExp)  = case typeExp of
     Int  -> genConditionInt e1 e2 "if_icmplt"
     Doub -> genConditionDouble e1 e2 "dcmpl" "iflt"
+    Bool -> fail $ "Type bool here ???? " ++ show e1 ++ "<" ++ show e2
 genExp (ERel e1 LE e2, typeExp)   = case typeExp of
     Int  -> genConditionInt e1 e2 "if_icmple"
     Doub -> genConditionDouble e1 e2 "dcmpl" "ifle"
+    Bool -> fail $ "Type bool here ????" ++ show e1 ++ "<=" ++ show e2
 genExp (ERel e1 GTH e2, typeExp)  = case typeExp of
     Int  -> genConditionInt e1 e2 "if_icmpgt"
     Doub -> genConditionDouble e1 e2 "dcmpg" "ifgt"
+    Bool -> fail $ "Type bool here ????" ++ show e1 ++ ">" ++ show e2
 genExp (ERel e1 GE e2, typeExp)   = case typeExp of
     Int  -> genConditionInt e1 e2 "if_icmpge"
     Doub -> genConditionDouble e1 e2 "dcmpg" "ifge"
+    Bool -> fail $ "Type bool here ????" ++ show e1 ++ ">=" ++ show e2
 genExp (ERel e1 EQU e2, typeExp)  = case typeExp of
     Int  -> genConditionInt e1 e2 "if_icmpeq"
+    Bool -> genConditionInt e1 e2 "if_icmpeq"
     Doub -> genConditionDouble e1 e2 "dcmpl" "ifeq"
 genExp (ERel e1 NE e2, typeExp)   = case typeExp of
     Int  -> genConditionInt e1 e2 "if_icmpne"
+    Bool -> genConditionInt e1 e2 "if_icmpne"
     Doub -> genConditionDouble e1 e2 "dcmpl" "ifne"
 
 genExp (EAnd e1 e2, typeExp)      = returnCode "EAnd\n"

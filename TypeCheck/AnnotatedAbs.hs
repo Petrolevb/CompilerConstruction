@@ -30,4 +30,20 @@ data AnnotatedStmt =
     | SExp AnnotatedExp
     deriving (Eq, Ord, Show)
 
-type AnnotatedExp = (Expr, Type) 
+data AnnotatedExp = 
+   EVar Ident Type
+ | ELitInt Integer Type
+ | ELitDoub Double Type
+ | ELitTrue Type
+ | ELitFalse Type
+ | EApp Ident [AnnotatedExp] Type
+ | EString String Type
+ | Neg AnnotatedExp Type
+ | Not AnnotatedExp Type
+ | EMul AnnotatedExp MulOp AnnotatedExp Type
+ | EAdd AnnotatedExp AddOp AnnotatedExp Type
+ | ERel AnnotatedExp RelOp AnnotatedExp Type
+ | EAnd AnnotatedExp AnnotatedExp Type
+ | EOr AnnotatedExp AnnotatedExp Type
+  deriving (Eq,Ord,Show)
+
