@@ -24,6 +24,9 @@ getLetterFromType t = case t of
 getLettersArgs :: [Arg] -> String
 getLettersArgs  = map (\(Arg typeA _) -> getLetterFromType typeA)
 
+getLettersExps :: [AnnotatedExp] -> String
+getLettersExps = map (getLetterFromType.getType)
+
 generation :: AnnotatedProgram -> IO ()
 generation (AnnotatedProgram topdefs) = evalStateT (genProg topdefs) newContext
 
@@ -132,7 +135,9 @@ genExp (TYP.ELitInt int _)             = returnCode $ "ldc " ++ show int ++ "\n"
 genExp (TYP.ELitDoub double _)         = returnCode $ "ldc2_w " ++ show double ++ "\n"
 genExp (TYP.ELitTrue _)                = returnCode $ "iconst_1" ++ "\n"
 genExp (TYP.ELitFalse _)               = returnCode $ "iconst_0" ++" \n"
-genExp (TYP.EApp ident exprs typeExp)  = returnCode "EApp\n"
+genExp (TYP.EApp ident exprs typeExp)  = do
+    mapM_ genExp exprs
+    returnCode $ "invokestatic " ++ (show ident) ++ "(" ++ (getLettersExps exprs) ++ ")" ++ (getLetterFromType typeExp): ")\n"
 genExp (TYP.EString string typeExp)    = returnCode "EString\n"
 genExp (TYP.Neg expr typeExp)          = do
     genExp expr
@@ -168,32 +173,32 @@ genExp (TYP.EAdd e1 Minus e2 typeExp)  = do
         Doub -> returnCode "dsub\n"
 
 genExp (TYP.ERel e1 LTH e2 t)  = do
-    typeExp <- getType e1
+    let typeExp = getType e1
     case typeExp of
         Int  -> genConditionInt e1 e2 "if_icmplt"
         Doub -> genConditionDouble e1 e2 "dcmpl" "iflt"
 genExp (TYP.ERel e1 LE e2 t)   = do 
-    typeExp <- getType e1
+    let typeExp = getType e1
     case typeExp of
         Int  -> genConditionInt e1 e2 "if_icmple"
         Doub -> genConditionDouble e1 e2 "dcmpl" "ifle"
 genExp (TYP.ERel e1 GTH e2 t)  = do 
-    typeExp <- getType e1
+    let typeExp = getType e1
     case typeExp of
         Int  -> genConditionInt e1 e2 "if_icmpgt"
         Doub -> genConditionDouble e1 e2 "dcmpg" "ifgt"
 genExp (TYP.ERel e1 GE e2 t)   = do 
-    typeExp <- getType e1
+    let typeExp = getType e1
     case typeExp of
         Int  -> genConditionInt e1 e2 "if_icmpge"
         Doub -> genConditionDouble e1 e2 "dcmpg" "ifge"
 genExp (TYP.ERel e1 EQU e2 t)  = do 
-    typeExp <- getType e1
+    let typeExp = getType e1
     case typeExp of
         Doub -> genConditionDouble e1 e2 "dcmpl" "ifeq"
         _    -> genConditionInt e1 e2 "if_icmpeq"
 genExp (TYP.ERel e1 NE e2 t)   = do 
-    typeExp <- getType e1
+    let typeExp = getType e1
     case typeExp of
         Doub -> genConditionDouble e1 e2 "dcmpl" "ifne"
         _    -> genConditionInt e1 e2 "if_icmpne"

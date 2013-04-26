@@ -12,6 +12,8 @@ import AnnotatedAbs
 -}
 
 getLocalaStackSize :: AnnotatedBlock -> (Int, Int)
+getLocalaStackSize _ = (0, 0)
+{-
 getLocalaStackSize (AnnotatedBlock stmts) = getStmts stmts
 
 getStmts :: [AnnotatedStmt] -> (Int, Int)
@@ -36,3 +38,5 @@ expOnStack (ELitDoub  _ _) = 1
 expOnStack (ELitTrue  _ _) = 1
 expOnStack (ELitFalse _ _) = 1
 expOnStack  _             = 0
+-}
+
