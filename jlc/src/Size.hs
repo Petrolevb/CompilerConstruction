@@ -4,11 +4,12 @@ module Size where
 import AnnotatedAbs
 
 {-
-   ldc    -> +1
-   bipush -> +1
-   const  -> +1
-   load   -> +1
-   store  -> -1
+   ldc          -> +1
+   bipush       -> +1
+   const        -> +1
+   load         -> +1
+   invokestatic -> +1
+   store        -> -1
 -}
 
 getLocalaStackSize :: AnnotatedBlock -> (Int, Int)
@@ -33,6 +34,7 @@ expOnStack :: AnnotatedExp -> Int
 expOnStack (EVar      _ _) = 1
 expOnStack (ELitInt   _ _) = 1
 expOnStack (ELitDoub  _ _) = 1
+expOnStack (EString   _ _) = 1
 expOnStack (ELitTrue  _  ) = 1
 expOnStack (ELitFalse _  ) = 1
 expOnStack  _              = 0

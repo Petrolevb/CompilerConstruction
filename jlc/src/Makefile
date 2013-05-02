@@ -3,7 +3,7 @@ all:
 	rm TestJavalette.hs
 	happy -gca ParJavalette.y
 	alex -g LexJavalette.x
-	ghc --make Jlc.hs -o jlc
+	ghc --make Jlc.hs -o ../jlc
 
 clean:
 	-rm -f *.log *.aux *.hi *.o *.dvi

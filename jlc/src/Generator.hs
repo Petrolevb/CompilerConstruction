@@ -12,7 +12,7 @@ import Size
 type GenState a = StateT GenContext IO a 
 
 returnCode :: String -> GenState ()
-returnCode = liftIO.(appendFile "a.j")
+returnCode = liftIO.(appendFile "genFile.j")
 
 
 getLetterFromType :: Type -> Char
@@ -31,19 +31,19 @@ getLettersExps = map (getLetterFromType.getType)
 
 generation :: AnnotatedProgram -> IO ()
 generation (AnnotatedProgram topdefs) = do
-    ex <-  doesFileExist "a.j" 
+    ex <-  doesFileExist "genFile.j" 
     if ex 
         then do 
-            removeFile "a.j"
+            removeFile "genFile.j"
             evalStateT (genProg topdefs) newContext
         else evalStateT (genProg topdefs) newContext
 
 genProg :: [AnnotatedTopDef] -> GenState ()
 genProg topdefs = do
-    returnCode ".class public jasmin\n"
-    returnCode ".super java/lang/Object\n"
+    returnCode ".class public genFile\n"
+    returnCode ".super java/lang/Object\n\n"
     returnCode ".method public <init>()V\naload_0\ninvokespecial java/lang/Object/<init>()V\nreturn\n.end method\n\n"
-    returnCode ".method public static main([Ljava/lang/String;)V\n.limit locals 1\ninvokestatic jasmin/main()\npop\nreturn\n.end method\n\n"
+    returnCode ".method public static main([Ljava/lang/String;)V\n.limit locals 1\ninvokestatic genFile/main()\npop\nreturn\n.end method\n\n"
     mapM_  genTopDef topdefs
 
 genTopDef :: AnnotatedTopDef -> GenState ()
@@ -216,7 +216,7 @@ genExp (TYP.EApp (Ident s) exprs typeExp)  = do
         "printDouble"   -> returnCode "invokestatic Runtime/printDouble(D)V\n"
         "readInt"       -> returnCode "invokestatic Runtime/readInt()I\n"
         "readDouble"    -> returnCode "invokestatic Runtime/readDouble()D\n"
-        "printString"   -> returnCode "invokestatic Runtime/printString(Ljava/lang/String)V\n"
+        "printString"   -> returnCode "invokestatic Runtime/printString(Ljava/lang/String;)V\n"
         _               -> returnCode $ "invokestatic " ++ s ++ "(" ++ (getLettersExps exprs) ++")"++ (getLetterFromType typeExp):"\n"
 genExp (TYP.EString string _)          = returnCode $ "ldc \"" ++ string ++ "\"\n"
 genExp (TYP.Neg expr _ )               = do
