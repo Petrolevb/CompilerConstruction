@@ -43,7 +43,10 @@ genProg topdefs = do
     returnCode ".class public genFile\n"
     returnCode ".super java/lang/Object\n\n"
     returnCode ".method public <init>()V\naload_0\ninvokespecial java/lang/Object/<init>()V\nreturn\n.end method\n\n"
-    returnCode ".method public static main([Ljava/lang/String;)V\n.limit locals 1\ninvokestatic genFile/main()\npop\nreturn\n.end method\n\n"
+    returnCode ".method public static main([Ljava/lang/String;)V\n"
+    returnCode ".limit locals 1\n"
+    returnCode "invokestatic genFile/main()V\n"
+    returnCode "pop\nreturn\n.end method\n\n"
     mapM_  genTopDef topdefs
 
 genTopDef :: AnnotatedTopDef -> GenState ()
