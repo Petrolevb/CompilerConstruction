@@ -1,9 +1,9 @@
-Dear examiner
+The program is called by using this command :
+./jlc filename
 
-We know that the project is still not finished
-We have an issue when we are trying to use java on the class file produced by jasmin
-It says that the main function has an incorrect signature, and we don't know why.
-Would you please help us with that ?
+It produces the .j file that need to be compile with jasmin.
 
-Best regards
+The program will be improve to choose between JVM and LLVM once both will be
+implemented.
+
 Erwan CHAUSSY & Vincent BELLEC
