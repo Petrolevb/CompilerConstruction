@@ -5,15 +5,19 @@ import AbsJavalette as ABS
 
 
 -- Context = (NameCurrentFunction, CounterLabel, [Javalette_var, Llvm_name], [name, content], [StackLabel])
-type LlvmContext = (Ident, Integer, MapVars, MapStrings, [String])
+type LlvmContext = (Ident, Integer, MapVars, MapStrs, [String])
 type MapVars = [(Ident, String)]
-type MapStrings = [(String, String)]
+type MapStrs = [(String, String)]
 
-newMap :: MapVars
-newMap = []
+newMapVars :: MapVars
+newMapVars = []
+
+newMapStrs :: MapStrs
+newMapStrs = []
 
 newContext :: LlvmContext
-newContext = ((Ident ""), 0, newMap, [])
+newContext = ((Ident ""), 0, newMap, newMapStrs, [])
+
 
 getMemory :: GenContext -> Ident -> String
 getMemory (_, _, mv, _) = getVar mv
@@ -23,15 +27,26 @@ getVar mv id = case lookup id mv of
                     Just x -> Just x
                     _      -> Fail "Variable not found"
 
-{-
-addVar :: GenContext -> (Type, Ident) -> GenContext
-addVar (id, c, mv, st) (typ, ident) = (id, c, (addInMv mv typ ident), st)
-    where addInMv mv t i = mv ++ [(t, i, (length mv))]
+-- Add the javalette ident to the lookup table with a new name
+addVar :: GenContext -> Ident -> GenContext
+addVar (id, c, mv, st) (Ident i) = (id, c+1, (addInMv mv i c), st)
+    where addInMv mv i c = mv ++ [(Ident i, "i"++c)]
+
 
 getNameFunc :: GenContext -> String
 getNameFunc ((Ident func), _, _, _) = func
 
+addFunc :: GenContext -> Ident -> GenContext
+addFunc (_, c, mv, st)  func = (func, c, mv, st)
 
+addArgs :: GenContext -> [Arg] -> GenContext
+addArgs (f, c, mv, st) args = (f, c+(length args), (mapArgs mv c args), st)
+
+mapArgs :: MapVars -> Int -> [Arg] -> MapVars
+mapArgs mv _ [] = mv
+mapArgs mv c ((Arg typeA (Ident i):args) = mapArgs (mv ++ [(Ident i, i+c)]) (c+1) args
+
+{-
 getLabel :: GenContext -> String
 getLabel ((Ident f), c, _, _) = f ++ "_" ++ show c
 -- get a label with the name of the current function and a counter
@@ -50,17 +65,4 @@ stackLabel (_, _, _, [])         = ""
 -- withdraw the top label from the stack
 popLabel :: GenContext -> GenContext
 popLabel(id, c, mv, (l:st)) = (id, c, mv, st)
-
-
-
-addFunc :: GenContext -> Ident -> GenContext
-addFunc (_, c, mv, st)  func = (func, c, mv, st)
-
-addArgs :: GenContext -> [Arg] -> GenContext
-addArgs (f, c, mv, st) args = (f, c, (mapArgs mv 1 args), st)
-
-mapArgs :: MapVars -> Int -> [Arg] -> MapVars
-mapArgs mv _ [] = mv
-mapArgs mv i ((Arg typeA ident):args) = mapArgs (mv ++ [(typeA, ident, i)]) (i+1) args
-
 -}
