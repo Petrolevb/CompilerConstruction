@@ -30,7 +30,7 @@ getVar mv id = case lookup id mv of
 -- Add the javalette ident to the lookup table with a new name
 addVar :: GenContext -> Ident -> GenContext
 addVar (id, c, mv, st) (Ident i) = (id, c+1, (addInMv mv i c), st)
-    where addInMv mv i c = mv ++ [(Ident i, "i"++c)]
+    where addInMv mv i c = mv ++ [(Ident i, (show i)++c)]
 
 
 getNameFunc :: GenContext -> String
@@ -44,7 +44,7 @@ addArgs (f, c, mv, st) args = (f, c+(length args), (mapArgs mv c args), st)
 
 mapArgs :: MapVars -> Int -> [Arg] -> MapVars
 mapArgs mv _ [] = mv
-mapArgs mv c ((Arg typeA (Ident i):args) = mapArgs (mv ++ [(Ident i, i+c)]) (c+1) args
+mapArgs mv c ((Arg typeA (Ident i):args) = mapArgs (mv ++ [(Ident i, (show i)++c)]) (c+1) args
 
 {-
 getLabel :: GenContext -> String
