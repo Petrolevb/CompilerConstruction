@@ -40,5 +40,5 @@ expOnStack (ELitFalse _  ) = 1
 expOnStack  _              = 0
 
 isVariable :: AnnotatedStmt -> Int
-isVariable (Ass _ _) = 1
+isVariable (Decl _ item) = length item
 isVariable  _        = 0

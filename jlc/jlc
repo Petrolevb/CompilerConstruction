@@ -22,4 +22,6 @@ then
 	llvm-ld llvmFile.bc lib/runtime.bc
 	#llvm-ld llvmFileOpt.bc lib/runtime.bc
     fi
+else
+    lib.jlc $1 $2
 fi

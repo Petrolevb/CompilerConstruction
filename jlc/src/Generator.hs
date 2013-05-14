@@ -12,7 +12,7 @@ import Size
 type GenState a = StateT GenContext IO a 
 
 returnCode :: String -> GenState ()
-returnCode = liftIO.(appendFile "genFile.j")
+returnCode = liftIO.appendFile "genFile.j"
 
 
 getLetterFromType :: Type -> Char
@@ -55,12 +55,12 @@ genTopDef (TYP.FnDef typeFn ident args block) = do
     put $ addArgs (addFunc env ident) args
     env <- get
     let (local, stack) = getLocalaStackSize block
-    returnCode $ ".method public static " ++ (getNameFunc env) 
-    returnCode $ "(" ++ (getLettersArgs args) ++ ")" ++ (getLetterFromType typeFn) : "\n" 
-    returnCode $ ".limit locals " ++ (show local) ++ "\n"
-    returnCode $ ".limit stack " ++ (show stack) ++ "\nentry:\n" 
+    returnCode $ ".method public static " ++ getNameFunc env
+    returnCode $ "(" ++ getLettersArgs args ++ ")" ++ getLetterFromType typeFn : "\n"
+    returnCode $ ".limit locals " ++ show local ++ "\n"
+    returnCode $ ".limit stack " ++ show stack ++ "\nentry:\n"
     genBlock block
-    returnCode $ ".end method\n\n"
+    returnCode ".end method\n\n"
 
 genBlock :: AnnotatedBlock -> GenState ()
 genBlock (AnnotatedBlock stmts) = mapM_ genStmt stmts
@@ -80,15 +80,15 @@ genStmt (TYP.Ass ident exp)       = do
 
 genStmt (TYP.Incr ident)          = do
     env <- get
-    returnCode $  "iinc " ++  (show (snd (getMemory env ident))) ++ " 1\n"
+    returnCode $  "iinc " ++  show (snd (getMemory env ident)) ++ " 1\n"
 genStmt (TYP.Decr ident)          = do
     env <- get
-    returnCode $ "iinc " ++  (show (snd (getMemory env ident))) ++ " -1\n"
+    returnCode $ "iinc " ++  show (snd (getMemory env ident)) ++ " -1\n"
 
 
 genStmt (TYP.Ret exp)             = do
     genExp exp
-    case (getType exp) of
+    case getType exp of
         Int  -> returnCode "ireturn\n"
         Bool -> returnCode "ireturn\n"
         Doub -> returnCode "dreturn\n"
@@ -124,7 +124,7 @@ genStmt (TYP.Cond exp stmt) = do
     genStmt stmt
 genStmt (TYP.CondElse exp s1 TYP.Empty)  = do
     env <- get
-    fail $ "Empty branch exist in " ++ (getNameFunc env) ++ " in a if else statement"
+    fail $ "Empty branch exist in " ++ getNameFunc env ++ " in a if else statement"
 genStmt (TYP.CondElse (TYP.ELitTrue _) s _)  = genStmt s
 genStmt (TYP.CondElse (TYP.ELitFalse _) _ s) = genStmt s
 genStmt (TYP.CondElse (TYP.EOr e1 e2 t) s1 s2)       = do
@@ -151,9 +151,9 @@ genStmt (TYP.CondElse (TYP.EOr e1 e2 t) s1 s2)       = do
     put $ popLabel env
 genStmt (TYP.CondElse exp s1 s2)  = do
     env <- get
-    let lab1 = (getLabel env)
+    let lab1 = getLabel env
     let tmpEnv = incrLabel env
-    let lab2 = (getLabel tmpEnv)
+    let lab2 = getLabel tmpEnv
     let newEnv = incrLabel tmpEnv
     put $ pushLabel newEnv lab1
     genExp exp
@@ -184,9 +184,9 @@ genStmt (TYP.While (TYP.EOr e1 e2 t) s1)       = do
     put $ popLabel env
 genStmt (TYP.While exp stmt) = do
     env <- get
-    let lab1 = (getLabel env)
+    let lab1 = getLabel env
     let tmpEnv = incrLabel env
-    let lab2 = (getLabel tmpEnv)
+    let lab2 = getLabel tmpEnv
     put $ pushLabel tmpEnv lab2
     genExp exp
     returnCode $ lab1 ++ ":\n"
@@ -220,12 +220,134 @@ genExp (TYP.EApp (Ident s) exprs typeExp)  = do
         "readInt"       -> returnCode "invokestatic Runtime/readInt()I\n"
         "readDouble"    -> returnCode "invokestatic Runtime/readDouble()D\n"
         "printString"   -> returnCode "invokestatic Runtime/printString(Ljava/lang/String;)V\n"
-        _               -> returnCode $ "invokestatic " ++ s ++ "(" ++ (getLettersExps exprs) ++")"++ (getLetterFromType typeExp):"\n"
+        _               -> returnCode $ "invokestatic " ++ s ++ "(" ++ (getLettersExps exprs) ++ ")"
+                                        ++ (getLetterFromType typeExp):"\n"
 genExp (TYP.EString string _)          = returnCode $ "ldc \"" ++ string ++ "\"\n"
 genExp (TYP.Neg expr _ )               = do
     genExp expr
     returnCode "ineg\n"
-genExp (TYP.Not expr typeExp)          = returnCode "Not\n"
+
+
+genExp (TYP.Not expr typeExp)      = returnCode "Not\n"
+{-
+   TO DO
+   TO DO
+   TO DO
+   TO DO
+   TO DO
+-}
+
+genExp (TYP.EMul e1 op e2 typeExp) = do
+   genExp e1
+   genExp e2
+   case typeExp of
+        Int -> returnCode $ 'i' : tOp
+        Doub-> returnCode $ 'd' : tOp
+   where tOp = case op of
+                    Times -> "mul\n"
+                    Div   -> "div\n"
+                    Mod   -> "rem\n"
+
+genExp (TYP.EAdd e1 op e2 typeExp) = do
+   genExp e1
+   genExp e2
+   case typeExp of
+        Int -> returnCode $ 'i' : tOp
+        Doub-> returnCode $ 'd' : tOp
+   where tOp = case op of
+                    Plus  -> "add\n"
+                    Minus -> "sub\n"
+
+genExp (TYP.EAnd e1 e2 typeExp) = do
+       genExp e1
+       genExp e2
+genExp (TYP.EOr e1 e2 typeExp)  = do
+       genExpOr e1
+       env <- get
+       put $ popLabel env
+       genExpOr e2
+
+genExp (TYP.ERel e1 th e2 t) = do
+    let typeExp = getType e1
+    case typeExp of
+        Int  -> genConditionInt e1 e2 ("if_cmp" ++ cond)
+        Doub -> genConditionDouble e1 e2 "dcmpl" ("if" ++ cond)
+  where cond = case th of
+                  LTH -> "ge"
+                  LE  -> "gt"
+                  GTH -> "le"
+                  GE  -> "lt"
+                  EQU -> "ne"
+                  NE  -> "eq"
+
+genExpOr (TYP.ERel e1 th e2 t) = do
+    let typeExp = getType e1
+    case typeExp of
+        Int  -> genConditionInt e1 e2 ("if_cmp" ++ cond)
+        Doub -> genConditionDouble e1 e2 "dcmpl" ("if" ++ cond)
+  where cond = case th of
+                  LTH -> "lt"
+                  LE  -> "le"
+                  GTH -> "gt"
+                  GE  -> "ge"
+                  EQU -> "eq"
+                  NE  -> "ne"
+
+genConditionDouble :: AnnotatedExp -> AnnotatedExp -> String -> String -> GenState ()
+genConditionDouble e1 e2 s1 s2= do
+    genExp e1
+    genExp e2
+    env <- get
+    let label = stackLabel env
+    returnCode $ s1 ++ "\n" ++ s2 ++ " " ++ label ++ "\n"
+
+genConditionInt :: AnnotatedExp -> AnnotatedExp -> String -> GenState ()
+genConditionInt e1 e2 s = do
+    genExp e1
+    genExp e2
+    env <- get
+    let label = stackLabel env
+    returnCode $ s ++ " " ++ label ++ "\n"
+
+
+genDecl :: Type -> [AnnotatedItem] -> GenState ()
+genDecl t = mapM_  (genItem t)
+    where 
+        genItem t (TYP.NoInit ident)    = do
+            env <- get
+            put $ addVar env (t, ident)
+        genItem t (TYP.Init ident exp)  = do
+            genExp exp
+            env <- get
+            put $ addVar env (t, ident)
+            env <- get
+            let (_, pos) = getMemory env ident
+            case t of 
+                Int  -> returnCode $ "istore " ++ show pos ++ "\n"
+                Bool -> returnCode $ "istore " ++ show pos ++ "\n" 
+                Doub -> returnCode $ "dstore " ++ show pos ++ "\n"
+
+
+getType :: AnnotatedExp -> Type
+getType (TYP.EVar     _ t) = t
+getType (TYP.ELitInt  _ t) = t
+getType (TYP.ELitDoub _ t) = t
+getType (TYP.ELitTrue t)   = t
+getType (TYP.ELitFalse t)  = t
+getType (TYP.EApp _ _ t)   = t
+getType (TYP.EString _ t)  = t
+getType (TYP.Neg _ t)      = t
+getType (TYP.Not _ t)      = t
+getType (TYP.EMul _ _ _ t) = t
+getType (TYP.EAdd _ _ _ t) = t
+getType (TYP.ERel _ _ _ t) = t
+getType (TYP.EAnd _ _ t)   = t
+getType (TYP.EOr _ _ t)    = t
+
+
+
+
+{-
 genExp (TYP.EMul e1 Times e2 typeExp)  = do
     genExp e1
     genExp e2 
@@ -241,7 +363,8 @@ genExp (TYP.EMul e1 Div e2 typeExp)    = do
 genExp (TYP.EMul e1 Mod e2 typeExp)    = do
     genExp e1
     genExp e2
-    returnCode "irem\n" 
+    returnCode "irem\n"
+
 genExp (TYP.EAdd e1 Plus e2 typeExp)   = do
     genExp e1
     genExp e2
@@ -285,76 +408,5 @@ genExp (TYP.ERel e1 NE e2 t)   = do
     case typeExp of
         Doub -> genConditionDouble e1 e2 "dcmpl" "ifeq"
         _    -> genConditionInt e1 e2 "if_icmpeq"
+-}
 
-genExp (TYP.EAnd e1 e2 typeExp) = do
-       genExp e1
-       genExp e2
-genExp (TYP.EOr e1 e2 typeExp)  = do
-       genExpOr e1
-       env <- get
-       put $ popLabel env
-       genExpOr e2
-
-genExpOr (TYP.ERel e1 th e2 t) = do
-    let typeExp = getType e1
-    case typeExp of
-        Int  -> genConditionInt e1 e2 ("if_cmp" ++ s1)
-        Doub -> genConditionDouble e1 e2 "dcmpl" ("if" ++ s1)
-  where s1 = case th of
-                  LTH -> "lt"
-                  LE  -> "le"
-                  GTH -> "gt"
-                  GE  -> "ge"
-                  EQU -> "eq"
-                  NE  -> "ne"
-
-genConditionDouble :: AnnotatedExp -> AnnotatedExp -> String -> String -> GenState ()
-genConditionDouble e1 e2 s1 s2= do
-    genExp e1
-    genExp e2
-    env <- get
-    let label = stackLabel env
-    returnCode $ s1 ++ "\n" ++ s2 ++ " " ++ label ++ "\n"
-
-genConditionInt :: AnnotatedExp -> AnnotatedExp -> String -> GenState ()
-genConditionInt e1 e2 s = do
-    genExp e1
-    genExp e2
-    env <- get
-    let label = stackLabel env
-    returnCode $ s ++ " " ++ label ++ "\n"
-
-
-genDecl :: Type -> [AnnotatedItem] -> GenState ()
-genDecl t is = mapM_  (genItem t) is
-    where 
-        genItem t (TYP.NoInit ident)    = do
-            env <- get
-            put $ addVar env (t, ident)
-        genItem t (TYP.Init ident exp)  = do
-            genExp exp
-            env <- get
-            put $ addVar env (t, ident)
-            env <- get
-            let (_, pos) = getMemory env ident
-            case t of 
-                Int  -> returnCode $ "istore " ++ show pos ++ "\n"
-                Bool -> returnCode $ "istore " ++ show pos ++ "\n" 
-                Doub -> returnCode $ "dstore " ++ show pos ++ "\n"
-
-
-getType :: AnnotatedExp -> Type
-getType (TYP.EVar     _ t) = t
-getType (TYP.ELitInt  _ t) = t
-getType (TYP.ELitDoub _ t) = t
-getType (TYP.ELitTrue t)   = t
-getType (TYP.ELitFalse t)  = t
-getType (TYP.EApp _ _ t)   = t
-getType (TYP.EString _ t)  = t
-getType (TYP.Neg _ t)      = t
-getType (TYP.Not _ t)      = t
-getType (TYP.EMul _ _ _ t) = t
-getType (TYP.EAdd _ _ _ t) = t
-getType (TYP.ERel _ _ _ t) = t
-getType (TYP.EAnd _ _ t)   = t
-getType (TYP.EOr _ _ t)    = t
