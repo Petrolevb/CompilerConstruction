@@ -69,7 +69,6 @@ genStmt :: AnnotatedStmt -> GenState ()
 genStmt TYP.Empty                 = returnCode ""
 genStmt (TYP.BStmt block)         = genBlock block
 genStmt (TYP.Decl typeDecl items) = genDecl typeDecl items
-
 genStmt (TYP.Ass ident exp)       = do
     genExp exp
     env <- get
@@ -84,44 +83,38 @@ genStmt (TYP.Incr ident)          = do
 genStmt (TYP.Decr ident)          = do
     env <- get
     returnCode $ "iinc " ++  show (snd (getMemory env ident)) ++ " -1\n"
-
-
 genStmt (TYP.Ret exp)             = do
     genExp exp
     case getType exp of
         Int  -> returnCode "ireturn\n"
         Bool -> returnCode "ireturn\n"
-        Doub -> returnCode "dreturn\n"
-        
+        Doub -> returnCode "dreturn\n"     
 genStmt TYP.VRet                  = returnCode "ireturn\n"
+
 genStmt (TYP.Cond (TYP.ELitTrue _) stmt)  = genStmt stmt
 genStmt (TYP.Cond (TYP.ELitFalse _) stmt) = returnCode ""
-genStmt (TYP.Cond (TYP.EOr e1 e2 t) stmt)       = do
-    env <- get
-    let lab1 = getLabel env
-    let tmpEnv = incrLabel env
-    let lab2 = getLabel tmpEnv
-    let tmpEnv2 = incrLabel tmpEnv
-    let tmpEnv3 = pushLabel tmpEnv2 lab2
-    put $ pushLabel tmpEnv3 lab1
+genStmt (TYP.Cond (TYP.EOr e1 e2 t) stmt) = do
     genExp (TYP.EOr e1 e2 t)
+    env <- get
+    let lab1 = stackLabel env
+    put $ popLabel env
     returnCode $ lab1 ++ ":\n"
-    env <- get
-    put $ popLabel env
     genStmt stmt
+    env <- get
+    let lab2 = stackLabel env
+    put $ popLabel env
     returnCode $ lab2 ++ ":\n"
+genStmt (TYP.Cond exp stmt) = do
+    genExp exp
+    env <- get
+    let lab1 = stackLabel env
+    returnCode $ lab1 ++ ":\n" 
     env <- get
     put $ popLabel env
-genStmt (TYP.Cond exp stmt) = do
     env <- get
-    let lab1 = getLabel env
-    let tmpEnv = incrLabel env
-    put $ pushLabel tmpEnv lab1
-    genExp exp
-    returnCode $ lab1 ++ ":\n" 
-    env2 <- get
-    put $ popLabel env2
+    put $ popLabel env
     genStmt stmt
+
 genStmt (TYP.CondElse exp s1 TYP.Empty)  = do
     env <- get
     fail $ "Empty branch exist in " ++ getNameFunc env ++ " in a if else statement"
@@ -150,21 +143,49 @@ genStmt (TYP.CondElse (TYP.EOr e1 e2 t) s1 s2)       = do
     env <- get
     put $ popLabel env
 genStmt (TYP.CondElse exp s1 s2)  = do
-    env <- get
-    let lab1 = getLabel env
-    let tmpEnv = incrLabel env
-    let lab2 = getLabel tmpEnv
-    let newEnv = incrLabel tmpEnv
-    put $ pushLabel newEnv lab1
     genExp exp
     genStmt s1
+    env <- get
+    let lab1 = stackLabel env
+    let tmpEnv = popLabel env
+    let lab2 = stackLabel tmpEnv
+    put $ popLabel tmpEnv
     returnCode $ "goto " ++ lab2 ++ "\n"
     returnCode $ lab1 ++ ":\n"
-    env <- get
-    put $ popLabel env
     genStmt s2
     returnCode $ lab2 ++ ":\n"
 
+genStmt (TYP.While (TYP.EOr e1 e2 t) s1)       = do
+    genExp (TYP.EOr e1 e2 t)
+    env <- get
+    let lab1 = stackLabel env
+    put $ popLabel env
+    returnCode $ lab1 ++ ":\n"
+    genStmt s1
+    env <- get
+    let lab2 = stackLabel env
+    put $ popLabel env
+    returnCode $ "goto " ++ lab1 ++ "\n"
+    returnCode $ lab2 ++ ":\n"
+genStmt (TYP.While exp stmt) = do
+    genExp exp
+    env <- get
+    let lab = stackLabel env
+    let tmpEnv = popLabel env
+    let lab1 = stackLabel tmpEnv
+    let newEnv = popLabel tmpEnv
+    put $ pushLabel newEnv lab
+    returnCode $ lab1 ++ ":\n"
+    genStmt stmt
+    returnCode $ "goto " ++ lab1 ++ "\n"
+    env <- get
+    let lab2 = stackLabel env
+    put $ popLabel env
+    returnCode $ lab2 ++ ":\n"
+
+genStmt (TYP.SExp exp)                = genExp exp
+
+{-
 genStmt (TYP.While (TYP.EOr e1 e2 t) s1)       = do
     env <- get
     let lab1 = getLabel env
@@ -195,9 +216,7 @@ genStmt (TYP.While exp stmt) = do
     returnCode $ lab2 ++ ":\n"
     env <- get
     put $ popLabel env
-
-genStmt (TYP.SExp exp)                = genExp exp
-
+-}
 
 
 
@@ -259,15 +278,21 @@ genExp (TYP.EAdd e1 op e2 typeExp) = do
                     Minus -> "sub\n"
 
 genExp (TYP.EAnd e1 e2 typeExp) = do
+       addLabels
        genExp e1
        genExp e2
 genExp (TYP.EOr e1 e2 typeExp)  = do
+       addLabels
        genExpOr e1
        env <- get
+       let lab = stackLabel env
        put $ popLabel env
        genExpOr e2
+       env <- get
+       put $ pushLabel env lab
 
 genExp (TYP.ERel e1 th e2 t) = do
+    addLabels
     let typeExp = getType e1
     case typeExp of
         Int  -> genConditionInt e1 e2 ("if_cmp" ++ cond)
@@ -281,6 +306,7 @@ genExp (TYP.ERel e1 th e2 t) = do
                   NE  -> "eq"
 
 genExpOr (TYP.ERel e1 th e2 t) = do
+    addLabels
     let typeExp = getType e1
     case typeExp of
         Int  -> genConditionInt e1 e2 ("if_cmp" ++ cond)
@@ -308,6 +334,16 @@ genConditionInt e1 e2 s = do
     env <- get
     let label = stackLabel env
     returnCode $ s ++ " " ++ label ++ "\n"
+
+addLabels :: GenState ()
+addLabels = do
+    env <- get
+    let lab1 = getLabel env
+    let tmpEnv = incrLabel env
+    let lab2 = getLabel tmpEnv
+    let tmpEnv1 = incrLabel tmpEnv
+    let tmpEnv2 = pushLabel tmpEnv1 lab2
+    put $ pushLabel tmpEnv2 lab1
 
 
 genDecl :: Type -> [AnnotatedItem] -> GenState ()

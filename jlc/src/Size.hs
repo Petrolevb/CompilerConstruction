@@ -19,9 +19,10 @@ getStmts :: [AnnotatedStmt] -> (Int, Int)
 getStmts (stm:stms) = ((isVariable stm) + fst(size stms),
                              (isOnStack stm)  + snd(size stms))
   where size = getStmts 
-getStmts [] = (0, 0)
+getStmts [] = (1, 0)
 
 isOnStack :: AnnotatedStmt -> Int
+isOnStack (Ass      _   _  ) = 1
 isOnStack (Cond     exp stm) = expOnStack exp + isOnStack stm
 isOnStack (CondElse exp stm1 stm2) = expOnStack exp
                                    + isOnStack stm1
@@ -31,12 +32,16 @@ isOnStack (SExp     exp    ) = expOnStack exp
 isOnStack _                = 0
 
 expOnStack :: AnnotatedExp -> Int
-expOnStack (EVar      _ _) = 1
-expOnStack (ELitInt   _ _) = 1
-expOnStack (ELitDoub  _ _) = 1
-expOnStack (EString   _ _) = 1
-expOnStack (ELitTrue  _  ) = 1
-expOnStack (ELitFalse _  ) = 1
+expOnStack (EVar       _ _) = 1
+expOnStack (ELitInt    _ _) = 1
+expOnStack (ELitDoub   _ _) = 1
+expOnStack (EString    _ _) = 1
+expOnStack (ELitTrue   _  ) = 1
+expOnStack (ELitFalse  _  ) = 1
+expOnStack (Neg        e _) = expOnStack e
+expOnStack (Not        e _) = expOnStack e
+expOnStack (EAdd e1 _ e2 _) = expOnStack e1 + expOnStack e2
+expOnStack (EMul e1 _ e2 _) = expOnStack e1 + expOnStack e2
 expOnStack  _              = 0
 
 isVariable :: AnnotatedStmt -> Int

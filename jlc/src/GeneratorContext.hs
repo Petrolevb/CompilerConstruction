@@ -46,6 +46,7 @@ stackLabel (_, _, _, [])         = ""
 
 -- withdraw the top label from the stack
 popLabel :: GenContext -> GenContext
+popLabel(id, c, mv, []    ) = (id, c, mv, [])
 popLabel(id, c, mv, (l:st)) = (id, c, mv, st)
 
 
