@@ -223,12 +223,12 @@ genExp (TYP.ELitDoub double _)         = returnCode $ "ldc2_w " ++ show double +
 genExp (TYP.ELitTrue _)                = returnCode $ "iconst_1" ++ "\n"
 genExp (TYP.ELitFalse _)               = returnCode $ "iconst_0" ++" \n"
 genExp (TYP.EApp (Ident s) exprs typeExp)  = do
-    mapM_ genExp exprs
+    let var <- from exprs
     case s of 
-        "printInt"      -> returnCode "invokestatic Runtime/printInt(I)V\n"
-        "printDouble"   -> returnCode "invokestatic Runtime/printDouble(D)V\n"
-        "readInt"       -> returnCode "invokestatic Runtime/readInt()I\n"
-        "readDouble"    -> returnCode "invokestatic Runtime/readDouble()D\n"
+        "printInt"      -> returnCode $ "tail call void @printInt(i32 " ++ var ++ ")"
+        "printDouble"   -> returnCode $ "tail call void @printInt(double " ++ var ++ ")"
+        "readInt"       -> returnCode "tail call i32 @printInt()"
+        "readDouble"    -> returnCode "tail call double @printInt()"
         "printString"   -> returnCode "invokestatic Runtime/printString(Ljava/lang/String;)V\n"
         _               -> returnCode $ "invokestatic " ++ s ++ "(" ++ (getLettersExps exprs) ++")"++ (getLetterFromType typeExp):"\n"
 genExp (TYP.EString string _)          = returnCode $ "ldc \"" ++ string ++ "\"\n"
