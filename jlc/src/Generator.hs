@@ -167,41 +167,7 @@ genStmt (TYP.While exp stmt) = do
     returnCode $ "goto " ++ lab1 ++ "\n"
     returnCode $ lab2 ++ ":\n"
 
-genStmt (TYP.SExp exp)                = genExp exp
-
-{-
-genStmt (TYP.While (TYP.EOr e1 e2 t) s1)       = do
-    env <- get
-    let lab1 = getLabel env
-    let tmpEnv = incrLabel env
-    let lab2 = getLabel tmpEnv
-    let tmpEnv1 = incrLabel tmpEnv
-    let tmpEnv2 = pushLabel tmpEnv1 lab2
-    put $ pushLabel tmpEnv2 lab1
-    genExp (TYP.EOr e1 e2 t)
-    returnCode $ lab1 ++ ":\n"
-    env <- get
-    put $ popLabel env
-    genStmt s1
-    returnCode $ "goto " ++ lab1 ++ "\n"
-    returnCode $ lab2 ++ ":\n"
-    env <- get
-    put $ popLabel env
-genStmt (TYP.While exp stmt) = do
-    env <- get
-    let lab1 = getLabel env
-    let tmpEnv = incrLabel env
-    let lab2 = getLabel tmpEnv
-    put $ pushLabel tmpEnv lab2
-    genExp exp
-    returnCode $ lab1 ++ ":\n"
-    genStmt stmt
-    returnCode $ "goto " ++ lab1 ++ "\n"
-    returnCode $ lab2 ++ ":\n"
-    env <- get
-    put $ popLabel env
--}
-
+genStmt (TYP.SExp exp) = genExp exp
 
 
 genExp :: AnnotatedExp -> GenState ()
@@ -230,6 +196,7 @@ genExp (TYP.Neg expr _ )               = do
     genExp expr
     returnCode "ineg\n"
 
+genExp (TYP.Not (TYP.ERel e1 th e2 t) typeExp) = genExpOr expr
 genExp (TYP.Not expr typeExp)      = do
     env <- get
     let lab = stackLabel env
