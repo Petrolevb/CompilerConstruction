@@ -28,13 +28,13 @@ returnCode :: String -> GenState ()
 returnCode = liftIO.(appendFile "genFile.ll")
 
 
-getLetterFromType :: Type -> Char
+getLetterFromType :: Type -> String
 getLetterFromType t = case t of
-    Int  -> 'I'
-    Doub -> 'D'
-    Void -> 'V'
-    Bool -> 'I'
-    Str  -> 'S'
+    Int  -> "i32"
+    Doub -> "double"
+    Void -> "void"
+    Bool -> "i1"
+    Str  -> "i8"
 
 getLettersArgs :: [Arg] -> String
 getLettersArgs  = map (\(Arg typeA _) -> getLetterFromType typeA)
@@ -65,13 +65,12 @@ genTopDef (TYP.FnDef typeFn ident args block) = do
     env <- get
     put $ addArgs (addFunc env ident) args
     env <- get
-    let (local, stack) = getLocalaStackSize block
-    returnCode $ ".method public static " ++ (getNameFunc env) 
-    returnCode $ "(" ++ (getLettersArgs args) ++ ")" ++ (getLetterFromType typeFn) : "\n" 
-    returnCode $ ".limit locals " ++ (show local) ++ "\n"
-    returnCode $ ".limit stack " ++ (show stack) ++ "\nentry:\n" 
+    returnCode $ "define " ++ (getLetterFromType typeFn) ++ "@" ++ ident ++ "(" ++ (genArgs args) ++ ") {\n"
+    returnCode $ "entry:\n"
     genBlock block
-    returnCode $ ".end method\n\n"
+    returnCode $ "}\n\n"
+        where genArgs [Arg t (Ident s)]    = (getLetterFromType t) ++ "%" ++ s
+            genArgs ((Arg t (Ident s)):as) = (getLetterFromType t) ++ "%s" ++ s ++ ", " ++ (genArgs as)
 
 genBlock :: AnnotatedBlock -> GenState ()
 genBlock (AnnotatedBlock stmts) = mapM_ genStmt stmts
