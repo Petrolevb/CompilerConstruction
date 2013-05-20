@@ -16,8 +16,11 @@ import TypeChecker
 
 import Generator
 
+import Llvm
+
 import ErrM
 
+type Compilation = Jvm | Llvm | X86
 type ParseFun a = [Token] -> Err a
 
 type Verbosity = Int
@@ -25,11 +28,11 @@ type Verbosity = Int
 putStrV :: Verbosity -> String -> IO ()
 putStrV v s = if v > 1 then putStrLn s else return ()
 
-runFile :: Verbosity -> ParseFun Program -> FilePath -> IO ()
-runFile v p f = putStrLn f >> readFile f >>= run v p f
+runFile :: Compilation -> Verbosity -> ParseFun Program -> FilePath -> IO ()
+runFile c v p f = putStrLn f >> readFile f >>= run c v p f
 
-run :: Verbosity -> ParseFun Program -> String -> String -> IO ()
-run v p fileName s = 
+run :: Compilation -> Verbosity -> ParseFun Program -> String -> String -> IO ()
+run c v p fileName s = 
     case p (myLexer s) of
            Bad s    -> do putStrLn "\nParse              Failed...\n"
                           putStrLn s
@@ -38,8 +41,9 @@ run v p fileName s =
                                 ioError (userError "ERROR")
                                 putStrV v $ "\nFail to anotate : " ++ s 
                             Ok at  -> do
-                                -- let fileName = getFileName s
-                                generation at fileName
+                                case c of 
+                                    Llvm -> generationLvm at fileName
+                                    Jvm -> generationJvm at fileName
                                 -- java -jar lib/jasmin.jar genFile.j
                                 ioError (userError "OK")
 
@@ -48,8 +52,8 @@ main = do args <- getArgs
           case args of
             [] -> hGetContents stdin >>= run 2 pProgram "genFile"
             "-s":fs -> mapM_ (runFile 0 pProgram) fs
-            "-b":"JVM":fs  -> mapM_ (runFile 2 pProgram) fs 
-            "-b":"LLVM":fs -> fail "LLVM not implemented yet"
+            "-b":"JVM":fs  -> mapM_ (runFile Jvm 2 pProgram) fs 
+            "-b":"LLVM":fs -> mapM_ (runFile Llvm 2 pProgram) fs
             "-b":"x86":fs  -> fail "x86 not implemented yet"
             fs -> mapM_ (runFile 2 pProgram) fs
 
