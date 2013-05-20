@@ -6,7 +6,7 @@ all:
 	ghc --make Jlc.hs -o ../lib/jlc
 
 clean:
-	-rm -f *.log *.aux *.hi *.o *.dvi
+	-rm -f *.log *.aux *.hi *.o *.dvi *.bak
 	-rm -f DocJavalette.ps
 distclean: clean
 	-rm -f *.bak DocJavalette.* LexJavalette.* ParJavalette.* LayoutJavalette.* SkelJavalette.* PrintJavalette.* TypeCheck AbsJavalette.* TestJavalette ErrM.* SharedString.* Javalette.dtd XMLJavalette.*
