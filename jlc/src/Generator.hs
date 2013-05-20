@@ -15,7 +15,7 @@ returnCode :: String -> GenState ()
 returnCode s = do
     env <- get
     let fileName = getFileName env
-    liftIO $ appendFile fileName s
+    liftIO $ appendFile (fileName ++ ".j") s
 
 
 getLetterFromType :: Type -> Char
@@ -34,22 +34,24 @@ getLettersExps = map (getLetterFromType.getType)
 
 generationJvm :: AnnotatedProgram -> String -> IO ()
 generationJvm (AnnotatedProgram topdefs) s = do
-    let fileName = init s
+    let fileName = init $ init $ init s
     ex <-  doesFileExist fileName 
     if ex 
         then do 
-            removeFile fileName
+            removeFile (fileName ++ ".j")
             evalStateT (genProg topdefs) (newContext fileName)
         else evalStateT (genProg topdefs) (newContext fileName)
 
 genProg :: [AnnotatedTopDef] -> GenState ()
 genProg topdefs = do
-    returnCode ".class public genFile\n"
+    env <- get
+    let fileName = getFileName env
+    returnCode $ ".class public " ++ fileName ++ "\n"
     returnCode ".super java/lang/Object\n\n"
     returnCode ".method public <init>()V\naload_0\ninvokespecial java/lang/Object/<init>()V\nreturn\n.end method\n\n"
     returnCode ".method public static main([Ljava/lang/String;)V\n"
     returnCode ".limit locals 1\n"
-    returnCode "invokestatic genFile/main()V\n"
+    returnCode $ "invokestatic " ++ fileName ++ "/main()V\n"
     returnCode "pop\nreturn\n.end method\n\n"
     mapM_  genTopDef topdefs
 
@@ -355,70 +357,4 @@ getType (TYP.EAdd _ _ _ t) = t
 getType (TYP.ERel _ _ _ t) = t
 getType (TYP.EAnd _ _ t)   = t
 getType (TYP.EOr _ _ t)    = t
-
-
-
-
-{-
-genExp (TYP.EMul e1 Times e2 typeExp)  = do
-    genExp e1
-    genExp e2 
-    case typeExp of
-        Int  -> returnCode "imul\n"
-        Doub -> returnCode "dmul\n"
-genExp (TYP.EMul e1 Div e2 typeExp)    = do
-    genExp e1 
-    genExp e2
-    case typeExp of
-        Int  -> returnCode "idiv\n"
-        Doub -> returnCode "ddiv\n"
-genExp (TYP.EMul e1 Mod e2 typeExp)    = do
-    genExp e1
-    genExp e2
-    returnCode "irem\n"
-
-genExp (TYP.EAdd e1 Plus e2 typeExp)   = do
-    genExp e1
-    genExp e2
-    case typeExp of
-        Int  -> returnCode "iadd\n"
-        Doub -> returnCode "dadd\n"
-genExp (TYP.EAdd e1 Minus e2 typeExp)  = do
-    genExp e1
-    genExp e2
-    case typeExp of
-        Int  -> returnCode "isub\n"
-        Doub -> returnCode "dsub\n"
-
-genExp (TYP.ERel e1 LTH e2 t)  = do
-    let typeExp = getType e1
-    case typeExp of
-        Int  -> genConditionInt e1 e2 "if_icmpge"
-        Doub -> genConditionDouble e1 e2 "dcmpl" "ifge"
-genExp (TYP.ERel e1 LE e2 t)   = do 
-    let typeExp = getType e1
-    case typeExp of
-        Int  -> genConditionInt e1 e2 "if_icmpgt"
-        Doub -> genConditionDouble e1 e2 "dcmpl" "ifgt"
-genExp (TYP.ERel e1 GTH e2 t)  = do 
-    let typeExp = getType e1
-    case typeExp of
-        Int  -> genConditionInt e1 e2 "if_icmple"
-        Doub -> genConditionDouble e1 e2 "dcmpg" "ifle"
-genExp (TYP.ERel e1 GE e2 t)   = do 
-    let typeExp = getType e1
-    case typeExp of
-        Int  -> genConditionInt e1 e2 "if_icmplt"
-        Doub -> genConditionDouble e1 e2 "dcmpg" "iflt"
-genExp (TYP.ERel e1 EQU e2 t)  = do 
-    let typeExp = getType e1
-    case typeExp of
-        Doub -> genConditionDouble e1 e2 "dcmpl" "ifne"
-        _    -> genConditionInt e1 e2 "if_icmpne"
-genExp (TYP.ERel e1 NE e2 t)   = do 
-    let typeExp = getType e1
-    case typeExp of
-        Doub -> genConditionDouble e1 e2 "dcmpl" "ifeq"
-        _    -> genConditionInt e1 e2 "if_icmpeq"
--}
 
