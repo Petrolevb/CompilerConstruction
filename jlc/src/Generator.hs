@@ -1,4 +1,4 @@
-module Generator where
+module Generator(generationJvm) where
 
 import System.Directory (removeFile, doesFileExist)
 import Control.Monad.State
@@ -32,8 +32,8 @@ getLettersArgs  = map (\(Arg typeA _) -> getLetterFromType typeA)
 getLettersExps :: [AnnotatedExp] -> String
 getLettersExps = map (getLetterFromType.getType)
 
-generation :: AnnotatedProgram -> String -> IO ()
-generation (AnnotatedProgram topdefs) s = do
+generationJvm :: AnnotatedProgram -> String -> IO ()
+generationJvm (AnnotatedProgram topdefs) s = do
     let fileName = init s
     ex <-  doesFileExist fileName 
     if ex 

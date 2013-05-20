@@ -1,4 +1,4 @@
-module Llvm where
+module Llvm (generationLlvm) where
 
 import System.Directory (removeFile, doesFileExist)
 import Control.Monad.State
@@ -42,8 +42,8 @@ getLettersArgs  = map (\(Arg typeA _) -> getLetterFromType typeA)
 getLettersExps :: [AnnotatedExp] -> String
 getLettersExps = map (getLetterFromType.getType)
 
-generation :: AnnotatedProgram -> IO ()
-generation (AnnotatedProgram topdefs) = do
+generationLlvm :: AnnotatedProgram -> IO ()
+generationLlvm (AnnotatedProgram topdefs) = do
     ex <-  doesFileExist "genFile.ll" 
     if ex 
         then do 
