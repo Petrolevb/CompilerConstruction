@@ -16,7 +16,7 @@ newMapStrs :: MapStrs
 newMapStrs = []
 
 newContext :: LlvmContext
-newContext = ((Ident ""), 0, newMapVars, newMapStrs, [])
+newContext = (Ident "", 0, newMapVars, newMapStrs, [])
 
 
 getMemory :: LlvmContext -> Ident -> String
@@ -29,22 +29,22 @@ getVar mv id = case lookup id mv of
 
 -- Add the javalette ident to the lookup table with a new name
 addVar :: LlvmContext -> Ident -> LlvmContext
-addVar (id, c, mv, ms, st) (Ident i) = (id, c+1, (addInMv mv i c), ms, st)
-    where addInMv mv i c = mv ++ [(Ident i, i ++ (show c))]
+addVar (id, c, mv, ms, st) (Ident i) = (id, c+1, addInMv mv i c, ms, st)
+    where addInMv mv i c = mv ++ [(Ident i, i ++ show c)]
 
 
 getNameFunc :: LlvmContext -> String
-getNameFunc ((Ident func), _, _, _, _) = func
+getNameFunc (Ident func, _, _, _, _) = func
 
 addFunc :: LlvmContext -> Ident -> LlvmContext
 addFunc (_, c, mv, ms, st)  func = (func, c, mv, ms, st)
 
 addArgs :: LlvmContext -> [Arg] -> LlvmContext
-addArgs (f, c, mv, ms, st) args = (f, c+(length args), (mapArgs mv c args), ms, st)
+addArgs (f, c, mv, ms, st) args = (f, c + length args, mapArgs mv c args, ms, st)
 
 mapArgs :: MapVars -> Int -> [Arg] -> MapVars
 mapArgs mv _ [] = mv
-mapArgs mv c (Arg typeA (Ident i):args) = mapArgs (mv ++ [(Ident i, i++ (show c))]) (c+1) args
+mapArgs mv c (Arg typeA (Ident i):args) = mapArgs (mv ++ [(Ident i, i++ show c)]) (c+1) args
 
 {-
 getLabel :: LlvmContext -> String
