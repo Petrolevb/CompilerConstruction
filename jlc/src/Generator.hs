@@ -12,7 +12,10 @@ import Size
 type GenState a = StateT GenContext IO a 
 
 returnCode :: String -> GenState ()
-returnCode = liftIO.appendFile "genFile.j"
+returnCode s = do
+    env <- get
+    let fileName = getFileName env
+    liftIO $ appendFile fileName s
 
 
 getLetterFromType :: Type -> Char
@@ -29,14 +32,15 @@ getLettersArgs  = map (\(Arg typeA _) -> getLetterFromType typeA)
 getLettersExps :: [AnnotatedExp] -> String
 getLettersExps = map (getLetterFromType.getType)
 
-generation :: AnnotatedProgram -> IO ()
-generation (AnnotatedProgram topdefs) = do
-    ex <-  doesFileExist "genFile.j" 
+generation :: AnnotatedProgram -> String -> IO ()
+generation (AnnotatedProgram topdefs) s = do
+    let fileName = init s
+    ex <-  doesFileExist fileName 
     if ex 
         then do 
-            removeFile "genFile.j"
-            evalStateT (genProg topdefs) newContext
-        else evalStateT (genProg topdefs) newContext
+            removeFile fileName
+            evalStateT (genProg topdefs) (newContext fileName)
+        else evalStateT (genProg topdefs) (newContext fileName)
 
 genProg :: [AnnotatedTopDef] -> GenState ()
 genProg topdefs = do
@@ -196,7 +200,7 @@ genExp (TYP.Neg expr _ )               = do
     genExp expr
     returnCode "ineg\n"
 
-genExp (TYP.Not (TYP.ERel e1 th e2 t) typeExp) = genExpOr expr
+genExp (TYP.Not (TYP.ERel e1 th e2 t) typeExp) = genExpOr (TYP.ERel e1 th e2 t)
 genExp (TYP.Not expr typeExp)      = do
     env <- get
     let lab = stackLabel env

@@ -14,7 +14,11 @@ then
     if [ $2 == "JVM" ]
     then
 	lib/jlc $1 $2 $3
-	java -jar lib/jasmin.jar genFile.j
+	str = $3
+	echo ${#str}
+	#fileName=${$3:0:$length}
+	#echo $fileName
+	#java -jar lib/jasmin.jar genFile.j
     else
 	lib/jlc $1 $2 $3
 	llvm-as llvmFile.ll

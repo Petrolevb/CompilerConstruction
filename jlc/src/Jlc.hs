@@ -26,10 +26,10 @@ putStrV :: Verbosity -> String -> IO ()
 putStrV v s = if v > 1 then putStrLn s else return ()
 
 runFile :: Verbosity -> ParseFun Program -> FilePath -> IO ()
-runFile v p f = putStrLn f >> readFile f >>= run v p
+runFile v p f = putStrLn f >> readFile f >>= run v p f
 
-run :: Verbosity -> ParseFun Program -> String -> IO ()
-run v p s = 
+run :: Verbosity -> ParseFun Program -> String -> String -> IO ()
+run v p fileName s = 
     case p (myLexer s) of
            Bad s    -> do putStrLn "\nParse              Failed...\n"
                           putStrLn s
@@ -37,22 +37,24 @@ run v p s =
                             Bad s  -> do
                                 ioError (userError "ERROR")
                                 putStrV v $ "\nFail to anotate : " ++ s 
-                            Ok at  -> do 
-                                generation at
+                            Ok at  -> do
+                                -- let fileName = getFileName s
+                                generation at fileName
                                 -- java -jar lib/jasmin.jar genFile.j
                                 ioError (userError "OK")
 
 main :: IO ()
 main = do args <- getArgs
           case args of
-            [] -> hGetContents stdin >>= run 2 pProgram
+            [] -> hGetContents stdin >>= run 2 pProgram "genFile"
             "-s":fs -> mapM_ (runFile 0 pProgram) fs
             "-b":"JVM":fs  -> mapM_ (runFile 2 pProgram) fs 
             "-b":"LLVM":fs -> fail "LLVM not implemented yet"
             "-b":"x86":fs  -> fail "x86 not implemented yet"
             fs -> mapM_ (runFile 2 pProgram) fs
 
-
+getFileName :: String -> String
+getFileName s = init $ head (words s)
 
 
 
