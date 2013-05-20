@@ -4,8 +4,8 @@ import AnnotatedAbs as TYP
 import AbsJavalette as ABS
 
 
--- Context = (NameCurrentFunction, CounterVariable, [Javalette_var, Llvm_name], [name, content], [StackLabel])
-type LlvmContext = (Ident, Int, MapVars, MapStrs, [String])
+-- Context = (NameCurrentFunction, (Counter: Label, Variable), [Javalette_var, Llvm_name], [name, content], [StackLabel])
+type LlvmContext = (Ident, (Int, Int), MapVars, MapStrs, [String])
 type MapVars = [(Ident, String)]
 type MapStrs = [(String, String)]
 
@@ -16,7 +16,7 @@ newMapStrs :: MapStrs
 newMapStrs = []
 
 newContext :: LlvmContext
-newContext = (Ident "", 0, newMapVars, newMapStrs, [])
+newContext = (Ident "", (0, 0), newMapVars, newMapStrs, [])
 
 
 getMemory :: LlvmContext -> Ident -> String
@@ -29,8 +29,8 @@ getVar mv id = case lookup id mv of
 
 -- Add the javalette ident to the lookup table with a new name
 addVar :: LlvmContext -> Ident -> LlvmContext
-addVar (id, c, mv, ms, st) (Ident i) = (id, c+1, addInMv mv i c, ms, st)
-    where addInMv mv i c = mv ++ [(Ident i, i ++ show c)]
+addVar (id, (cl,cv), mv, ms, st) (Ident i) = (id, (cl, cv+1), addInMv mv i cv, ms, st)
+    where addInMv mv i cv = mv ++ [(Ident i, i ++ show cv)]
 
 
 getNameFunc :: LlvmContext -> String
@@ -40,29 +40,28 @@ addFunc :: LlvmContext -> Ident -> LlvmContext
 addFunc (_, c, mv, ms, st)  func = (func, c, mv, ms, st)
 
 addArgs :: LlvmContext -> [Arg] -> LlvmContext
-addArgs (f, c, mv, ms, st) args = (f, c + length args, mapArgs mv c args, ms, st)
+addArgs (f, (cl, cv), mv, ms, st) args = (f, (cl, cv + length args), mapArgs mv (cl, cv) args, ms, st)
 
-mapArgs :: MapVars -> Int -> [Arg] -> MapVars
+mapArgs :: MapVars -> (Int, Int) -> [Arg] -> MapVars
 mapArgs mv _ [] = mv
-mapArgs mv c (Arg typeA (Ident i):args) = mapArgs (mv ++ [(Ident i, i++ show c)]) (c+1) args
+mapArgs mv (cl, cv) (Arg typeA (Ident i):args) = mapArgs (mv ++ [(Ident i, i++ show cv)]) (cl, cv+1) args
 
-{-
+
 getLabel :: LlvmContext -> String
-getLabel ((Ident f), c, _, _) = f ++ "_" ++ show c
+getLabel (Ident f, (cl, cv), _, _, _) = f ++ "_" ++ show cl
 -- get a label with the name of the current function and a counter
 incrLabel :: LlvmContext -> LlvmContext
-incrLabel (f, c, mv, st) = (f, c+1, mv, st)
+incrLabel (f, (cl, cv), mv, ms, st) = (f, (cl+1, cv), mv, ms, st)
 
 -- add a label on the stack of label
 pushLabel :: LlvmContext -> String -> LlvmContext
-pushLabel (id, c, mv, st) label = (id, c, mv, (label:st))
+pushLabel (id, c, mv, ms, st) label = (id, c, mv, ms, label:st)
 
 -- take the first label on the stack
 stackLabel :: LlvmContext -> String
-stackLabel (_, _, _, (label:st)) = label
-stackLabel (_, _, _, [])         = ""
+stackLabel (_, _, _, _, label:st) = label
+stackLabel (_, _, _, _, [])         = ""
 
 -- withdraw the top label from the stack
 popLabel :: LlvmContext -> LlvmContext
-popLabel(id, c, mv, (l:st)) = (id, c, mv, st)
--}
+popLabel(id, c, mv, ms, l:st) = (id, c, mv, ms, st)
