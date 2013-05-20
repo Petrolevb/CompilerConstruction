@@ -81,11 +81,20 @@ genStmt TYP.Empty                 = returnCode ""
 genStmt (TYP.BStmt block)         = genBlock block
 genStmt (TYP.Decl typeDecl items) = undefined
 
-genStmt (TYP.Ass ident exp)       = undefined
+genStmt (TYP.Ass ident exp)       = do
+    env <- get
+    let typeStr = getLetterFromType $ getType exp
+    returnCode $ (getMemory env ident) ++ " = alloca " ++ typeStr ++ "\n"
+    returnCode $ "store " ++ typeStr ++ " "
+    genExp exp
+    returnCode "\n"
 genStmt (TYP.Incr ident)          = undefined
 genStmt (TYP.Decr ident)          = undefined
-genStmt (TYP.Ret exp)             = undefined
-genStmt TYP.VRet                  = undefined
+genStmt (TYP.Ret exp)             = do
+    returnCode $ "ret " ++ (getLetterFromType $ getType exp) ++ " "
+    genExp exp
+    returnCode "\n"
+genStmt TYP.VRet                  = returnCode "ret\n"
 genStmt (TYP.Cond (TYP.ELitTrue _) stmt)  = genStmt stmt
 genStmt (TYP.Cond (TYP.ELitFalse _) stmt) = returnCode ""
 genStmt (TYP.Cond (TYP.EOr e1 e2 t) stmt)       = undefined
@@ -104,8 +113,8 @@ genStmt (TYP.SExp exp)                          = genExp exp
 
 genExp :: AnnotatedExp -> GenState ()
 genExp (TYP.EVar ident typeExp)        = undefined
-genExp (TYP.ELitInt int _)             = returnCode $ "ldc " ++ show int ++ "\n"
-genExp (TYP.ELitDoub double _)         = returnCode $ "ldc2_w " ++ show double ++ "\n"
+genExp (TYP.ELitInt int _)             = returnCode $ show int 
+genExp (TYP.ELitDoub double _)         = returnCode $ show double
 genExp (TYP.ELitTrue _)                = returnCode $ "iconst_1" ++ "\n"
 genExp (TYP.ELitFalse _)               = returnCode $ "iconst_0" ++" \n"
 genExp (TYP.EApp (Ident s) exprs typeExp)  = do
