@@ -25,8 +25,10 @@ type GenState a = StateT LlvmContext IO a
 -}
 
 returnCode :: String -> GenState ()
-returnCode = liftIO.(appendFile "genFile.ll")
-
+returnCode s = do
+    env <- get
+    let fileName = getFileName env
+    liftIO $ appendFile fileName s
 
 getLetterFromType :: Type -> String
 getLetterFromType t = case t of
@@ -36,14 +38,18 @@ getLetterFromType t = case t of
     Bool -> "i1"
     Str  -> "i8"
 
-generationLlvm :: AnnotatedProgram -> IO ()
-generationLlvm (AnnotatedProgram topdefs) = do
-    ex <-  doesFileExist "genFile.ll" 
+extractFileName :: String -> String
+extractFileName s = init (init s) ++ "ll"
+
+generationLlvm :: AnnotatedProgram -> String -> IO ()
+generationLlvm (AnnotatedProgram topdefs) s = do
+    let fileName = extractFileName s
+    ex <- doesFileExist fileName
     if ex 
         then do 
-            removeFile "genFile.ll"
-            evalStateT (genProg topdefs) newContext
-        else evalStateT (genProg topdefs) newContext
+            removeFile fileName
+            evalStateT (genProg topdefs) (newContext fileName)
+        else evalStateT (genProg topdefs) (newContext fileName)
 
 genProg :: [AnnotatedTopDef] -> GenState ()
 genProg topdefs = do

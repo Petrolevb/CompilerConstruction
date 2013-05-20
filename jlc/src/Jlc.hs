@@ -20,7 +20,7 @@ import Llvm
 
 import ErrM
 
-type Compilation = Jvm | Llvm | X86
+data Compilation = Jvm | Llvm | X86
 type ParseFun a = [Token] -> Err a
 
 type Verbosity = Int
@@ -28,7 +28,7 @@ type Verbosity = Int
 putStrV :: Verbosity -> String -> IO ()
 putStrV v s = if v > 1 then putStrLn s else return ()
 
-runFile :: Compilation -> Verbosity -> ParseFun Program -> FilePath -> IO ()
+runFile :: Compilation -> Verbosity -> ParseFun Program -> String -> IO ()
 runFile c v p f = putStrLn f >> readFile f >>= run c v p f
 
 run :: Compilation -> Verbosity -> ParseFun Program -> String -> String -> IO ()
@@ -42,7 +42,7 @@ run c v p fileName s =
                                 putStrV v $ "\nFail to anotate : " ++ s 
                             Ok at  -> do
                                 case c of 
-                                    Llvm -> generationLvm at fileName
+                                    Llvm -> generationLlvm at fileName
                                     Jvm -> generationJvm at fileName
                                 -- java -jar lib/jasmin.jar genFile.j
                                 ioError (userError "OK")
@@ -50,15 +50,11 @@ run c v p fileName s =
 main :: IO ()
 main = do args <- getArgs
           case args of
-            [] -> hGetContents stdin >>= run 2 pProgram "genFile"
-            "-s":fs -> mapM_ (runFile 0 pProgram) fs
+            [] -> hGetContents stdin >>= run Jvm 2 pProgram "genFile.jl"
+            "-s":fs -> mapM_ (runFile Jvm 0 pProgram) fs
             "-b":"JVM":fs  -> mapM_ (runFile Jvm 2 pProgram) fs 
             "-b":"LLVM":fs -> mapM_ (runFile Llvm 2 pProgram) fs
             "-b":"x86":fs  -> fail "x86 not implemented yet"
-            fs -> mapM_ (runFile 2 pProgram) fs
-
-getFileName :: String -> String
-getFileName s = init $ head (words s)
-
+            fs -> mapM_ (runFile Jvm 2 pProgram) fs
 
 
