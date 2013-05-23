@@ -99,20 +99,12 @@ genStmt TYP.VRet                  = returnCode "ireturn\n"
 
 genStmt (TYP.Cond (TYP.ELitTrue _) stmt)  = genStmt stmt
 genStmt (TYP.Cond (TYP.ELitFalse _) stmt) = returnCode ""
-genStmt (TYP.Cond (TYP.ERel e1 th e2 t) stmt) = do
+genStmt (TYP.Cond cond              stmt) = do
     env <- get
     let lab1 = getLabel env
     let newEnv = incrLabel env
-    put $ pushLabel newEnv lab1
-    genExp (TYP.ERel e1 th e2 t)
-    genStmt stmt
-    returnCode $ lab1 ++ ":\n"
-genStmt (TYP.Cond exp stmt) = do
-    env <- get
-    let lab1 = getLabel env
-    put $ incrLabel env
-    genExp exp
-    returnCode $ "ifeq " ++ lab1 ++ "\n"
+    put $ pushLabel newEnv lab1    
+    genExp cond
     genStmt stmt
     returnCode $ lab1 ++ ":\n"
 
@@ -121,57 +113,73 @@ genStmt (TYP.CondElse exp s1 TYP.Empty)  = do
     fail $ "Empty branch exist in " ++ getNameFunc env ++ " in a if else statement"
 genStmt (TYP.CondElse (TYP.ELitTrue _) s _)  = genStmt s
 genStmt (TYP.CondElse (TYP.ELitFalse _) _ s) = genStmt s
-genStmt (TYP.CondElse (TYP.ERel e1 th e2 t) s1 s2) = do
+genStmt (TYP.CondElse cond s1 s2) = do
+    addLabels
     env <- get
-    let lab1 = getLabel env
-    let tmpEnv = incrLabel env
-    let lab2 = getLabel tmpEnv
-    let newEnv = incrLabel tmpEnv
-    put $ pushLabel newEnv lab1
-    genExp (TYP.ERel e1 th e2 t)
-    genStmt s1
-    returnCode $ "goto " ++ lab2 ++ "\n"
-    returnCode $ lab1 ++ ":\n"
-    genStmt s2
-    returnCode $ lab2 ++ ":\n"
-genStmt (TYP.CondElse exp s1 s2)  = do
-    env <- get
-    let lab1 = getLabel env
-    let tmpEnv = incrLabel env
-    let lab2 = getLabel tmpEnv
-    put $ incrLabel tmpEnv
-    genExp exp
-    returnCode $ "ifeq " ++ lab1 ++ "\n"
-    genStmt s1
-    returnCode $ "goto " ++ lab2 ++ "\n"
-    returnCode $ lab1 ++ ":\n"
-    genStmt s2
-    returnCode $ lab2 ++ ":\n"
+    let lab1 = stackLabel env
+    let newEnv = popLabel env
+    let lab2 = stackLabel newEnv
 
-genStmt (TYP.While (TYP.ERel e1 th e2 t) s1) = do
-    env <- get
-    let lab1 = getLabel env
-    let tmpEnv = incrLabel env
-    let lab2 = getLabel tmpEnv
-    let newEnv = incrLabel tmpEnv
-    put $ pushLabel newEnv lab2
-    returnCode $ lab1 ++ ":\n"
-    genExp (TYP.ERel e1 th e2 t)
+    case cond of
+         TYP.EOr e1 e2 t -> do
+                 switchTopStack
+                 genExp (TYP.EOr e1 e2 t)
+                 returnCode $ lab2 ++ ":\n"
+         _                   -> do
+                  genExp cond
+                  env <- get
+                  put $ popLabel env
+
     genStmt s1
-    returnCode $ "goto " ++ lab1 ++ "\n"
-    returnCode $ lab2 ++ ":\n"
-genStmt (TYP.While exp stmt) = do
+    if not containReturn
+      then do
+          env <- get
+          let lab3 = getLabel env
+          let newEnv = incrLabel env
+          put $ pushLabel newEnv lab3
+          returnCode $ "goto " ++ lab3 ++ "\n"
+      else return ()
+    returnCode $ lab1 ++ ":\n"
+    genStmt s2
+    if not containReturn
+      then do
+          env <- get
+          let lab3 = stackLabel env
+          put $ popLabel env
+          returnCode $ lab3 ++ ":\n"
+      else return ()
     env <- get
-    let lab1 = getLabel env
-    let tmpEnv = incrLabel env
-    let lab2 = getLabel tmpEnv
-    put $ incrLabel tmpEnv
-    returnCode $ lab1 ++ ":\n"    
-    genExp exp
-    returnCode $ "ifeq " ++ lab2 ++ "\n"
+    put $ popLabel env
+    where containReturn = isReturn s1
+
+genStmt (TYP.While cond stmt) = do
+    addLabels
+    env <- get
+    let lab1 = stackLabel env
+    let newEnv = popLabel env
+    let lab2 = stackLabel newEnv
+    returnCode $ lab1 ++ ":\n"
+    
+    case cond of
+         TYP.EOr e1 e2 t -> do
+                 env <- get
+                 let lab3 = getLabel env
+                 let tmpEnv = incrLabel env
+                 put $ pushLabel tmpEnv lab3
+                 genExp (TYP.EOr e1 e2 t)
+                 returnCode $ lab3 ++ ":\n"
+                 env <- get
+                 let newEnv = popLabel env
+                 put $ popLabel newEnv
+         _ -> do
+                  env <- get
+                  put $ popLabel env
+                  genExp cond
     genStmt stmt
     returnCode $ "goto " ++ lab1 ++ "\n"
     returnCode $ lab2 ++ ":\n"
+    env <- get
+    put $ popLabel env
 
 genStmt (TYP.SExp exp) = genExp exp
 
@@ -206,8 +214,18 @@ genExp (TYP.Not (TYP.ERel e1 th e2 t) typeExp) = genExpOr (TYP.ERel e1 th e2 t)
 genExp (TYP.Not expr typeExp)      = do
     env <- get
     let lab = stackLabel env
+    addLabels
+    env <- get
+    let lab1 = stackLabel env
+    let tmpEnv = popLabel env
+    let lab2 = stackLabel tmpEnv
     genExp expr
-    returnCode $ "ifeq " ++ lab ++ "\n"
+    env <- get
+    let tmpEnv = popLabel env
+    put $ popLabel tmpEnv
+    returnCode $ lab1 ++ ":\n"
+    returnCode $ "goto " ++ lab ++ "\n"
+    returnCode $ lab2 ++ ":\n"
 
 genExp (TYP.EMul e1 op e2 typeExp) = do
    genExp e1
@@ -231,42 +249,14 @@ genExp (TYP.EAdd e1 op e2 typeExp) = do
                     Minus -> "sub\n"
 
 genExp (TYP.EAnd e1 e2 typeExp) = do
-       addLabels
        genExp e1
        genExp e2
-       env <- get
-       let lab1 = stackLabel env
-       let tmpEnv = popLabel env
-       let lab2 = stackLabel tmpEnv
-       put $ popLabel tmpEnv
-       returnCode $ lab1 ++ ":\n"
-       returnCode "iconst_0\n"
-       env <- get
-       let lab3 = getLabel env
-       put $ incrLabel env
-       returnCode $ "goto " ++ lab3 ++ "\n"
-       returnCode $ lab2 ++ ":\n"
-       returnCode "iconst_1\n"
-       returnCode $ lab3 ++ ":\n"
+
 genExp (TYP.EOr e1 e2 typeExp)  = do
-       addLabels
        genExpOr e1
        env <- get
-       let lab1 = stackLabel env
        put $ popLabel env
        genExp e2
-       env <- get
-       let lab2 = stackLabel env
-       put $ popLabel env
-       returnCode $ lab1 ++ ":\n"
-       returnCode "iconst_1\n"
-       env <- get
-       let lab3 = getLabel env
-       put $ incrLabel env
-       returnCode $ "goto " ++ lab3 ++ "\n"
-       returnCode $ lab2 ++ ":\n"
-       returnCode "iconst_0\n"
-       returnCode $ lab3 ++ ":\n"
 
 genExp (TYP.ERel e1 th e2 t) = do
     let typeExp = getType e1
@@ -280,6 +270,7 @@ genExp (TYP.ERel e1 th e2 t) = do
                   GE  -> "lt"
                   EQU -> "ne"
                   NE  -> "eq"
+
 
 genExpOr :: AnnotatedExp -> GenState ()
 genExpOr (TYP.ERel e1 th e2 t) = do
@@ -313,6 +304,7 @@ genConditionInt e1 e2 s = do
     let label = stackLabel env
     returnCode $ s ++ " " ++ label ++ "\n"
 
+
 addLabels :: GenState ()
 addLabels = do
     env <- get
@@ -322,6 +314,16 @@ addLabels = do
     let tmpEnv1 = incrLabel tmpEnv
     let tmpEnv2 = pushLabel tmpEnv1 lab2
     put $ pushLabel tmpEnv2 lab1
+
+switchTopStack :: GenState ()
+switchTopStack = do
+    env <- get
+    let lab1 = stackLabel env
+    let tmpEnv = popLabel env
+    let lab2 = stackLabel env
+    let tmpEnv2 = popLabel env
+    let newEnv = pushLabel tmpEnv2 lab1
+    put $ pushLabel newEnv lab2
 
 
 genDecl :: Type -> [AnnotatedItem] -> GenState ()
@@ -360,10 +362,10 @@ getType (TYP.EOr _ _ t)    = t
 
 
 isReturn :: TYP.AnnotatedStmt -> Bool
-isReturn (BStmt block)      = or $ isReturn block
-isReturn (Ret _)            = true
-isReturn  VRet              = true 
-isReturn (Cond _ s)         =  or $ isReturn s
-isReturn (CondElse _ s1 s2) = or $ isReturn s1 ++ isReturn s2
-isReturn (While _ s)        = or $ isReturn s
-isReturn _                  = false
+isReturn (TYP.BStmt (AnnotatedBlock block)) = or $ map isReturn block
+isReturn (TYP.Ret _)            = True
+isReturn  TYP.VRet              = True 
+isReturn (TYP.Cond _ s)         = False || isReturn s
+isReturn (TYP.CondElse _ s1 s2) = False || isReturn s1 || isReturn s2
+isReturn (TYP.While _ s)        = False || isReturn s
+isReturn _                      = False

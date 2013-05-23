@@ -1,12 +1,20 @@
 #!/bin/bash
 
-if [ $# -lt 2 ]
+#if [ $# -lt 2 ]
+#then
+#    echo "Nombre d'arguments invalides"
+#    echo "Utilisation :"
+#    echo "./jlc -s fileName"
+#    echo "./jlc -b JVM fileName"
+#    echo "./jlc -b LLVM fileName"
+#fi
+
+if [ $# == 1 ]
 then
-    echo "Nombre d'arguments invalides"
-    echo "Utilisation :"
-    echo "./jlc -s fileName"
-    echo "./jlc -b JVM fileName"
-    echo "./jlc -b LLVM fileName"
+    lib/jlc -b JVM $1
+    str="$1"
+    fileName=${str/%jl/j}
+    java -jar lib/jasmin.jar $fileName
 fi
 
 if [ $1 == "-b" ]
@@ -21,13 +29,13 @@ then
 	lib/jlc $1 $2 $3
 	str="$3"
 	fileName=${str/%jl/ll}
-	llvm-as fileName
-	fileOpt=${fileName/%.ll/Opt.bc}
-	opt -std-compile-opt fileName > llvmFileOpt.bc
+	llvm-as $fileName
 	fileAs=${fileName/%ll/bc}
-	llvm-ld fileAs lib/runtime.bc
-	#llvm-ld llvmFileOpt.bc lib/runtime.bc
+	fileOpt=${fileName/%.ll/Opt.bc}
+	opt -std-compile-opt $fileAs > $FileOpt
+	#llvm-ld fileAs lib/runtime.bc
+        llvm-ld $FileOpt lib/runtime.bc
     fi
 else
-    lib.jlc $1 $2
+    lib/jlc $1 $2
 fi
