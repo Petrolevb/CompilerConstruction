@@ -358,3 +358,12 @@ getType (TYP.ERel _ _ _ t) = t
 getType (TYP.EAnd _ _ t)   = t
 getType (TYP.EOr _ _ t)    = t
 
+
+isReturn :: TYP.AnnotatedStmt -> Bool
+isReturn (BStmt block)      = or $ isReturn block
+isReturn (Ret _)            = true
+isReturn  VRet              = true 
+isReturn (Cond _ s)         =  or $ isReturn s
+isReturn (CondElse _ s1 s2) = or $ isReturn s1 ++ isReturn s2
+isReturn (While _ s)        = or $ isReturn s
+isReturn _                  = false
