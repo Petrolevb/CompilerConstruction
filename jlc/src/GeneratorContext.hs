@@ -21,7 +21,7 @@ getMemory :: GenContext -> Ident -> (Type, Int)
 getMemory (_, _, mv, _, _) = getVar mv
 
 getVar :: MapVars -> Ident -> (Type, Int)
-getVar ((t, id, i):maps) search | id == search = (t, i)
+getVar ((t, id, i):maps) search | id == search = (t, i-1)
                                 | otherwise = getVar maps search
 
 addVar :: GenContext -> (Type, Ident) -> GenContext

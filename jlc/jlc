@@ -26,15 +26,20 @@ then
 	fileName=${str/%jl/j}
 	java -jar lib/jasmin.jar $fileName
     else
-	lib/jlc $1 $2 $3
-	str="$3"
-	fileName=${str/%jl/ll}
-	llvm-as $fileName
-	fileAs=${fileName/%ll/bc}
-	fileOpt=${fileName/%.ll/Opt.bc}
-	opt -std-compile-opt $fileAs > $FileOpt
-	#llvm-ld fileAs lib/runtime.bc
-        llvm-ld $FileOpt lib/runtime.bc
+	if [ $2 == "LLVM" ]
+	then
+	    lib/jlc $1 $2 $3
+	    str="$3"
+	    fileName=${str/%jl/ll}
+	    llvm-as $fileName
+	    fileAs=${fileName/%ll/bc}
+	    fileOpt=${fileName/%.ll/Opt.bc}
+	    opt -std-compile-opt $fileAs > $FileOpt
+	    #llvm-ld fileAs lib/runtime.bc
+            llvm-ld $FileOpt lib/runtime.bc
+	else
+	    echo "x86 generation not implemented"
+	fi
     fi
 else
     lib/jlc $1 $2

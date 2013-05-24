@@ -44,7 +44,6 @@ run c v p fileName s =
                                 case c of 
                                     Llvm -> generationLlvm at fileName
                                     Jvm -> generationJvm at fileName
-                                -- java -jar lib/jasmin.jar genFile.j
                                 ioError (userError "OK")
 
 main :: IO ()

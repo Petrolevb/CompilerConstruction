@@ -35,7 +35,7 @@ getLettersExps = map (getLetterFromType.getType)
 generationJvm :: AnnotatedProgram -> String -> IO ()
 generationJvm (AnnotatedProgram topdefs) s = do
     let fileName = init $ init $ init s
-    ex <-  doesFileExist fileName 
+    ex <-  doesFileExist (fileName ++ ".j")
     if ex 
         then do 
             removeFile (fileName ++ ".j")
@@ -51,7 +51,7 @@ genProg topdefs = do
     returnCode ".method public <init>()V\naload_0\ninvokespecial java/lang/Object/<init>()V\nreturn\n.end method\n\n"
     returnCode ".method public static main([Ljava/lang/String;)V\n"
     returnCode ".limit locals 1\n"
-    returnCode $ "invokestatic " ++ fileName ++ "/main()V\n"
+    returnCode $ "invokestatic " ++ fileName ++ "/main()I\n"
     returnCode "pop\nreturn\n.end method\n\n"
     mapM_  genTopDef topdefs
 
@@ -63,7 +63,7 @@ genTopDef (TYP.FnDef typeFn ident args block) = do
     let (local, stack) = getLocalaStackSize block
     returnCode $ ".method public static " ++ getNameFunc env
     returnCode $ "(" ++ getLettersArgs args ++ ")" ++ getLetterFromType typeFn : "\n"
-    returnCode $ ".limit locals " ++ show local ++ "\n"
+    returnCode $ ".limit locals " ++ show (local + length args) ++ "\n"
     returnCode $ ".limit stack " ++ show stack ++ "\nentry:\n"
     genBlock block
     returnCode ".end method\n\n"
