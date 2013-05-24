@@ -165,3 +165,15 @@ getType (TYP.EAdd _ _ _ t) = t
 getType (TYP.ERel _ _ _ t) = t
 getType (TYP.EAnd _ _ t)   = t
 getType (TYP.EOr _ _ t)    = t
+
+getComplexity :: AnnotatedExp -> Int
+getComplexity (TYP.EVar     _ _) = 1
+getComplexity (TYP.ELitInt  _ _) = 1
+getComplexity (TYP.ELitDoub _ _) = 1
+getComplexity (TYP.ELitTrue _)   = 1
+getComplexity (TYP.ELitFalse _)  = 1
+getComplexity (TYP.EString _ _)  = 1
+getComplexity (TYP.Neg e _)      = getComplexity e
+getComplexity (TYP.Not e _)      = getComplexity e
+getComplexity _                  = 2
+
