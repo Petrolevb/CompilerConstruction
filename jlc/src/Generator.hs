@@ -193,8 +193,39 @@ genExp (TYP.EVar ident typeExp)        = do
         _    -> returnCode $ "iload " ++ show pos ++ "\n"
 genExp (TYP.ELitInt int _)             = returnCode $ "ldc " ++ show int ++ "\n"
 genExp (TYP.ELitDoub double _)         = returnCode $ "ldc2_w " ++ show double ++ "\n"
-genExp (TYP.ELitTrue _)                = returnCode $ "iconst_1" ++ "\n"
-genExp (TYP.ELitFalse _)               = returnCode $ "iconst_0" ++" \n"
+genExp (TYP.ELitTrue _)                = returnCode "iconst_1\n"
+genExp (TYP.ELitFalse _)               = returnCode "iconst_0\n"
+{- genExp (TYP.EApp (Ident "printBool") exprs typeExp) = do
+    case head exprs of
+         (TYP.EOr _ _ _) -> do
+              addLabels
+              env <- get
+              let lab1 = stackLabel env
+              let tmpEnv = popLabel env
+              let lab2 = stackLabel tmpEnv
+              let lab3 = getLabel env
+              put $ incrLabel env
+              genExpOr $ head exprs
+              returnCode $ lab1 ++ ":/n"
+              returnCode "iconst_1\n"
+              returnCode $ "goto " ++ lab3 ++ "\n"
+              returnCode $ lab2 ++ ":/n"
+              returnCode "iconst_0\n"
+              returnCode $ lab3 ++ ":/n"
+         (TYP.EAnd _ _ _) -> do
+              addLabels
+              env <- get
+              let lab1 = stackLabel env
+              let tmpEnv = popLabel env
+              let lab2 = stackLabel tmpEnv
+              put tmpEnv
+              genExp $ head exprs
+              returnCode "iconst_1\n"
+              returnCode $ "goto " ++ lab1 ++ "\n"
+              returnCode $ lab2 ++ ":/n"
+              returnCode "iconst_0\n"
+              returnCode $ lab1 ++ ":/n"
+         _ -> genExp (TYP.EApp (Ident "printBool") exprs typeExp) -}
 genExp (TYP.EApp (Ident s) exprs typeExp)  = do
     mapM_ genExp exprs
     case s of 
@@ -210,6 +241,8 @@ genExp (TYP.Neg expr _ )               = do
     genExp expr
     returnCode "ineg\n"
 
+genExp (TYP.Not (TYP.ELitTrue  _)       _      ) = returnCode "iconst_0\n"
+genExp (TYP.Not (TYP.ELitFalse _)       _      ) = returnCode "iconst_1\n"
 genExp (TYP.Not (TYP.ERel e1 th e2 t) typeExp) = genExpOr (TYP.ERel e1 th e2 t)
 genExp (TYP.Not expr typeExp)      = do
     env <- get
@@ -261,8 +294,8 @@ genExp (TYP.EOr e1 e2 typeExp)  = do
 genExp (TYP.ERel e1 th e2 t) = do
     let typeExp = getType e1
     case typeExp of
-        Int  -> genConditionInt e1 e2 ("if_icmp" ++ cond)
         Doub -> genConditionDouble e1 e2 "dcmpl" ("if" ++ cond)
+        _    -> genConditionInt e1 e2 ("if_icmp" ++ cond)
   where cond = case th of
                   LTH -> "ge"
                   LE  -> "gt"
@@ -276,8 +309,8 @@ genExpOr :: AnnotatedExp -> GenState ()
 genExpOr (TYP.ERel e1 th e2 t) = do
     let typeExp = getType e1
     case typeExp of
-        Int  -> genConditionInt e1 e2 ("if_icmp" ++ cond)
         Doub -> genConditionDouble e1 e2 "dcmpl" ("if" ++ cond)
+        _    -> genConditionInt e1 e2 ("if_icmp" ++ cond)
   where cond = case th of
                   LTH -> "lt"
                   LE  -> "le"
