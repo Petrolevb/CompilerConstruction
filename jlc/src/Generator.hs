@@ -231,45 +231,48 @@ genExp (TYP.ELitDoub double _)         = returnCode $ "ldc2_w " ++ show double +
 genExp (TYP.ELitTrue _)                = returnCode "iconst_1\n"
 genExp (TYP.ELitFalse _)               = returnCode "iconst_0\n"
 genExp (TYP.EApp (Ident s) exprs typeExp) = do
-    case head exprs of
-         (TYP.EOr _ _ _) -> do
-              addLabels
-              env <- get
-              let lab3 = getLabel env
-              put $ incrLabel env
-              env <- get
-              let lab1 = stackLabel env
-              let tmpEnv = popLabel env
-              let lab2 = stackLabel tmpEnv
-              genExpOr $ head exprs
-              returnCode $ lab1 ++ ":\n"
-              returnCode "iconst_1\n"
-              returnCode $ "goto " ++ lab3 ++ "\n"
-              returnCode $ lab2 ++ ":\n"
-              returnCode "iconst_0\n"
-              returnCode $ lab3 ++ ":\n"
-              env <- get
-              put $ popLabel env
-              mapM_ genExp (drop 1 exprs)
-         (TYP.EAnd _ _ _) -> do
-              addLabels
-              env <- get
-              let lab1 = stackLabel env
-              let tmpEnv = popLabel env
-              let lab2 = stackLabel tmpEnv
-              put tmpEnv
-              genExp $ head exprs
-              returnCode "iconst_1\n"
-              returnCode $ "goto " ++ lab1 ++ "\n"
-              returnCode $ lab2 ++ ":\n"
-              returnCode "iconst_0\n"
-              returnCode $ lab1 ++ ":\n"
-              env <- get
-              put $ popLabel env
-              mapM_ genExp (drop 1 exprs)
-         (TYP.EApp id ex t) -> do
-              genExp (TYP.EApp id ex t)
-         _ -> mapM_ genExp exprs
+    if null exprs
+    then returnCode ""
+    else do
+         case head exprs of
+              (TYP.EOr _ _ _) -> do
+                       addLabels
+                       env <- get
+                       let lab3 = getLabel env
+                       put $ incrLabel env
+                       env <- get
+                       let lab1 = stackLabel env
+                       let tmpEnv = popLabel env
+                       let lab2 = stackLabel tmpEnv
+                       genExpOr $ head exprs
+                       returnCode $ lab1 ++ ":\n"
+                       returnCode "iconst_1\n"
+                       returnCode $ "goto " ++ lab3 ++ "\n"
+                       returnCode $ lab2 ++ ":\n"
+                       returnCode "iconst_0\n"
+                       returnCode $ lab3 ++ ":\n"
+                       env <- get
+                       put $ popLabel env
+                       mapM_ genExp (drop 1 exprs)
+              (TYP.EAnd _ _ _) -> do
+                        addLabels
+                        env <- get
+                        let lab1 = stackLabel env
+                        let tmpEnv = popLabel env
+                        let lab2 = stackLabel tmpEnv
+                        put tmpEnv
+                        genExp $ head exprs
+                        returnCode "iconst_1\n"
+                        returnCode $ "goto " ++ lab1 ++ "\n"
+                        returnCode $ lab2 ++ ":\n"
+                        returnCode "iconst_0\n"
+                        returnCode $ lab1 ++ ":\n"
+                        env <- get
+                        put $ popLabel env
+                        mapM_ genExp (drop 1 exprs)
+              (TYP.EApp id ex t) -> do
+                        genExp (TYP.EApp id ex t)
+              _ -> mapM_ genExp exprs
     case s of 
         "printInt"      -> returnCode "invokestatic Runtime/printInt(I)V\n"
         "printDouble"   -> returnCode "invokestatic Runtime/printDouble(D)V\n"
