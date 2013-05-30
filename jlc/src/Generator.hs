@@ -108,6 +108,21 @@ genStmt (TYP.Ret (TYP.EOr e1 e2 t)) = do
     returnCode "ireturn\n"
     env <- get
     put $ popLabel env
+genStmt (TYP.Ret (TYP.ERel e1 th e2 t)) = do
+    addLabels
+    env <- get
+    let lab1 = stackLabel env
+    let tmpEnv = popLabel env
+    let lab2 = stackLabel tmpEnv
+    put tmpEnv
+    genExp (TYP.ERel e1 th e2 t)
+    returnCode "iconst_1\n"
+    returnCode "ireturn\n"
+    returnCode $ lab2 ++ ":\n"
+    returnCode "iconst_0\n"
+    returnCode "ireturn\n"
+    env <- get
+    put $ popLabel env
 genStmt (TYP.Ret exp)             = do
     genExp exp
     case getType exp of
@@ -270,6 +285,20 @@ genExp (TYP.EApp (Ident s) exprs typeExp) = do
                         returnCode $ lab1 ++ ":\n"
                         env <- get
                         put $ popLabel env
+                        mapM_ genExp (drop 1 exprs)
+              (TYP.ERel e1 th e2 t) -> do
+                        addLabels
+                        env <- get
+                        let lab1 = stackLabel env
+                        let tmpEnv = popLabel env
+                        let lab2 = stackLabel tmpEnv
+                        put tmpEnv
+                        genExp $ head exprs
+                        returnCode "iconst_1\n"
+                        returnCode $ "goto " ++ lab1 ++ "\n"
+                        returnCode $ lab2 ++ ":\n"
+                        returnCode "iconst_0\n"
+                        returnCode $ lab1 ++ ":\n"
                         mapM_ genExp (drop 1 exprs)
               (TYP.EApp id ex t) -> do
                         genExp (TYP.EApp id ex t)
