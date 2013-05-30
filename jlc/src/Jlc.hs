@@ -4,6 +4,7 @@ module Main where
 
 import System.IO ( stdin, hGetContents )
 import System.Environment ( getArgs, getProgName )
+import System.Exit
 
 import LexJavalette
 import ParJavalette
@@ -34,12 +35,13 @@ runFile c v p f = putStrLn f >> readFile f >>= run c v p f
 run :: Compilation -> Verbosity -> ParseFun Program -> String -> String -> IO ()
 run c v p fileName s = 
     case p (myLexer s) of
-           Bad s    -> do putStrLn "\nParse              Failed...\n"
+           Bad s    -> do ioError (userError "ERROR")
+                          putStrV v "\nParse Failed...\n"
                           putStrLn s
            Ok  tree -> case typecheck tree of
                             Bad s  -> do
                                 ioError (userError "ERROR")
-                                putStrV v $ "\nFail to anotate : " ++ s 
+                                putStrV v $ "\nFail to anotate : " ++ s
                             Ok at  -> do
                                 case c of 
                                     Llvm -> generationLlvm at fileName

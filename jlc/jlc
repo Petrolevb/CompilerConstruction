@@ -1,46 +1,77 @@
 #!/bin/bash
 
-#if [ $# -lt 2 ]
-#then
-#    echo "Nombre d'arguments invalides"
-#    echo "Utilisation :"
-#    echo "./jlc -s fileName"
-#    echo "./jlc -b JVM fileName"
-#    echo "./jlc -b LLVM fileName"
-#fi
+function help_JLC {
+    echo "Use :"
+    echo "./jlc         fileName -- By default compiles to Jvm"
+    echo "./jlc -s      fileName -- Compiles to Jvm"
+    echo "./jlc -b JVM  fileName"
+    echo "./jlc -b LLVM fileName"
+    exit 1
+}
+
+function getError {
+    a=`cat JLC_tmp`
+    if [ "$a" == "jlc: user error (OK)" ]
+    then
+	echo "OK" >&2
+    else
+	echo "ERROR" >&2
+	rm JLC_tmp
+	exit 1
+    fi
+}
+
+if [ $# -lt 1 ]
+then
+    echo "Invalide argument number"
+    help_JLC
+fi
 
 if [ $# == 1 ]
 then
-    lib/jlc -b JVM $1
+    lib/jlc -b JVM $1 2> JLC_tmp
+    getError
     str="$1"
     fileName=${str/%jl/j}
     java -jar lib/jasmin.jar $fileName
+    rm JLC_tmp
+    exit 0
 fi
 
 if [ $1 == "-b" ]
 then
     if [ $2 == "JVM" ]
     then
-	lib/jlc $1 $2 $3
+	lib/jlc $1 $2 $3 2> JLC_tmp
+	getError
 	str="$3"
 	fileName=${str/%jl/j}
 	java -jar lib/jasmin.jar $fileName
+	rm JLC_tmp
+	exit 0
     else
 	if [ $2 == "LLVM" ]
 	then
-	    lib/jlc $1 $2 $3
+	    lib/jlc $1 $2 $3 2> JLC_tmp
+	    getError
 	    str="$3"
 	    fileName=${str/%jl/ll}
 	    llvm-as $fileName
 	    fileAs=${fileName/%ll/bc}
 	    fileOpt=${fileName/%.ll/Opt.bc}
 	    opt -std-compile-opt $fileAs > $FileOpt
-	    #llvm-ld fileAs lib/runtime.bc
             llvm-ld $FileOpt lib/runtime.bc
+	    rm JLC_tmp
+	    exit 0
 	else
-	    echo "x86 generation not implemented"
+	    echo "Wrong use"
+	    help_JLC
 	fi
     fi
 else
     lib/jlc $1 $2
+    getError
+    rm JLC_tmp
+    exit 0
 fi
+
