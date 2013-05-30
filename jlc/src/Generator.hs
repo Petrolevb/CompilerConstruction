@@ -58,7 +58,10 @@ genProg topdefs = do
 genTopDef :: AnnotatedTopDef -> GenState ()
 genTopDef (TYP.FnDef typeFn ident args block) = do
     env <- get
-    put $ addArgs (addFunc env ident) args
+    put $ addFunc env ident
+    saveEnv <- get
+    let newEnv = newArgs saveEnv
+    put $ addArgs newEnv args
     env <- get
     let (local, stack) = getLocalaStackSize block
     returnCode $ ".method public static " ++ getNameFunc env
@@ -67,6 +70,7 @@ genTopDef (TYP.FnDef typeFn ident args block) = do
     returnCode $ ".limit stack " ++ show stack ++ "\nentry:\n"
     genBlock block
     returnCode ".end method\n\n"
+    put saveEnv
 
 genBlock :: AnnotatedBlock -> GenState ()
 genBlock (AnnotatedBlock stmts) = mapM_ genStmt stmts

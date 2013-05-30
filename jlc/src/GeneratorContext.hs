@@ -58,9 +58,11 @@ addFunc :: GenContext -> Ident -> GenContext
 addFunc (_, c, mv, st, fn)  func = (func, c, mv, st, fn)
 
 addArgs :: GenContext -> [Arg] -> GenContext
-addArgs (f, c, mv, st, fn) args = (f, c, (mapArgs mv 1 args), st, fn)
+addArgs (f, c, mv, st, fn) args = (f, c, (mapArgs mv 0 args), st, fn)
 
 mapArgs :: MapVars -> Int -> [Arg] -> MapVars
 mapArgs mv _ [] = mv
 mapArgs mv i ((Arg typeA ident):args) = mapArgs (mv ++ [(typeA, ident, i)]) (i+1) args
 
+newArgs :: GenContext -> GenContext
+newArgs (f, c, mv, st, fn) = (f, c, newMap, st, fn)

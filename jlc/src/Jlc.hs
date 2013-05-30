@@ -53,7 +53,6 @@ main = do args <- getArgs
             "-s":fs -> mapM_ (runFile Jvm 0 pProgram) fs
             "-b":"JVM":fs  -> mapM_ (runFile Jvm 2 pProgram) fs 
             "-b":"LLVM":fs -> mapM_ (runFile Llvm 2 pProgram) fs
-            "-b":"x86":fs  -> fail "x86 not implemented yet"
             fs -> mapM_ (runFile Jvm 2 pProgram) fs
 
 
