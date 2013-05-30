@@ -134,6 +134,7 @@ genStmt (TYP.Cond cond              stmt) = do
                  put $ pushLabel tmpEnv lab2
                  genExp cond
                  returnCode $ lab2 ++ ":\n"
+         _ -> genExp cond
     genStmt stmt
     returnCode $ lab1 ++ ":\n"
     env <- get
