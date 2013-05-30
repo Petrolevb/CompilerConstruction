@@ -19,7 +19,7 @@ getStmts :: [AnnotatedStmt] -> (Int, Int)
 getStmts (stm:stms) = ((isVariable stm) + fst(size stms),
                              (isOnStack stm)  + snd(size stms))
   where size = getStmts 
-getStmts [] = (1, 0)
+getStmts [] = (1, 1)
 
 isOnStack :: AnnotatedStmt -> Int
 isOnStack (BStmt    (AnnotatedBlock block)) = sum $ map isOnStack block

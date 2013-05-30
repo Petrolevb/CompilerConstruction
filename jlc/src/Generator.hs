@@ -1,6 +1,7 @@
 module Generator(generationJvm) where
 
 import System.Directory (removeFile, doesFileExist)
+import System.FilePath
 import Control.Monad.State
 
 import AnnotatedAbs as TYP
@@ -35,17 +36,17 @@ getLettersExps = map (getLetterFromType.getType)
 generationJvm :: AnnotatedProgram -> String -> IO ()
 generationJvm (AnnotatedProgram topdefs) s = do
     let fileName = init $ init $ init s
-    ex <-  doesFileExist (fileName ++ ".j")
+    ex <-  doesFileExist $ fileName ++ ".j"
     if ex 
         then do 
-            removeFile (fileName ++ ".j")
+            removeFile $ fileName ++ ".j"
             evalStateT (genProg topdefs) (newContext fileName)
         else evalStateT (genProg topdefs) (newContext fileName)
 
 genProg :: [AnnotatedTopDef] -> GenState ()
 genProg topdefs = do
     env <- get
-    let fileName = getFileName env
+    let fileName = takeBaseName $ getFileName env
     returnCode $ ".class public " ++ fileName ++ "\n"
     returnCode ".super java/lang/Object\n\n"
     returnCode ".method public <init>()V\naload_0\ninvokespecial java/lang/Object/<init>()V\nreturn\n.end method\n\n"

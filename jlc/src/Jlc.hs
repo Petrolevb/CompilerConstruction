@@ -4,7 +4,7 @@ module Main where
 
 import System.IO ( stdin, hGetContents )
 import System.Environment ( getArgs, getProgName )
-import System.Exit
+import System.FilePath
 
 import LexJavalette
 import ParJavalette
@@ -30,14 +30,14 @@ putStrV :: Verbosity -> String -> IO ()
 putStrV v s = if v > 1 then putStrLn s else return ()
 
 runFile :: Compilation -> Verbosity -> ParseFun Program -> String -> IO ()
-runFile c v p f = putStrLn f >> readFile f >>= run c v p f
+runFile c v p f = {- putStrLn f >> -} readFile f >>= run c v p f
 
 run :: Compilation -> Verbosity -> ParseFun Program -> String -> String -> IO ()
 run c v p fileName s = 
     case p (myLexer s) of
            Bad s    -> do ioError (userError "ERROR")
                           putStrV v "\nParse Failed...\n"
-                          putStrLn s
+                          putStrV v s
            Ok  tree -> case typecheck tree of
                             Bad s  -> do
                                 ioError (userError "ERROR")
