@@ -1,6 +1,6 @@
 #!/bin/bash
 
-function help_JLC {
+function help_JLC() {
     echo "Use :"
     echo "./jlc         fileName -- By default compiles to Jvm"
     echo "./jlc -s      fileName -- Compiles to Jvm"
@@ -9,16 +9,34 @@ function help_JLC {
     exit 1
 }
 
-function getError {
+function getError() {
     a=`cat JLC_tmp`
     if [ "$a" == "jlc: user error (OK)" ]
     then
 	echo "OK" >&2
+	rm JLC_tmp
     else
 	echo "ERROR" >&2
 	rm JLC_tmp
 	exit 1
     fi
+}
+
+function genJVM() {
+    lib/jlc -b JVM $1 2> JLC_tmp
+    getError
+    # Get the file name and change the extension
+    str="$1"
+    fileName=${str/%jl/j}
+    # Check if the file is in another directory to generate in the right directory
+    dir=${str%/*.jl}
+    if [ $dir == $str ]
+    then
+	java -jar lib/jasmin.jar $fileName
+    else
+	java -jar lib/jasmin.jar -d $dir $fileName
+    fi
+    exit 0
 }
 
 if [ $# -lt 1 ]
@@ -29,26 +47,14 @@ fi
 
 if [ $# == 1 ]
 then
-    lib/jlc -b JVM $1 2> JLC_tmp
-    getError
-    str="$1"
-    fileName=${str/%jl/j}
-    java -jar lib/jasmin.jar $fileName
-    rm JLC_tmp
-    exit 0
+    genJVM $1
 fi
 
 if [ $1 == "-b" ]
 then
     if [ $2 == "JVM" ]
     then
-	lib/jlc $1 $2 $3 2> JLC_tmp
-	getError
-	str="$3"
-	fileName=${str/%jl/j}
-	java -jar lib/jasmin.jar $fileName
-	rm JLC_tmp
-	exit 0
+	genJVM $3
     else
 	if [ $2 == "LLVM" ]
 	then
@@ -61,7 +67,6 @@ then
 	    fileOpt=${fileName/%.ll/Opt.bc}
 	    opt -std-compile-opt $fileAs > $FileOpt
             llvm-ld $FileOpt lib/runtime.bc
-	    rm JLC_tmp
 	    exit 0
 	else
 	    echo "Wrong use"
@@ -69,9 +74,12 @@ then
 	fi
     fi
 else
-    lib/jlc $1 $2
-    getError
-    rm JLC_tmp
-    exit 0
+    if [ $1 == "-s" ]
+    then
+	genJVM $2
+    else
+	echo "Wrong use"
+	help_JLC
+    fi
 fi
 
