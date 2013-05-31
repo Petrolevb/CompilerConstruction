@@ -24,6 +24,7 @@ getStmts [] = (1, 1)
 isOnStack :: AnnotatedStmt -> Int
 isOnStack (BStmt    (AnnotatedBlock block)) = sum $ map isOnStack block
 isOnStack (Ass      _   _  ) = 1
+isOnStack (Ret      exp    ) = expOnStack exp
 isOnStack (Cond     exp stm) = expOnStack exp + isOnStack stm
 isOnStack (CondElse exp stm1 stm2) = expOnStack exp
                                    + isOnStack stm1
@@ -44,7 +45,7 @@ expOnStack (Neg        e _) = expOnStack e
 expOnStack (Not        e _) = expOnStack e
 expOnStack (EAdd e1 _ e2 _) = 1 + expOnStack e1 + expOnStack e2
 expOnStack (EMul e1 _ e2 _) = 1 + expOnStack e1 + expOnStack e2
-expOnStack (ERel e1 _ e2 _) = expOnStack e1 + expOnStack e2
+expOnStack (ERel e1 _ e2 _) = 1 + expOnStack e1 + expOnStack e2
 expOnStack (EAnd e1 e2   _) = expOnStack e1 + expOnStack e2
 expOnStack (EOr  e1 e2   _) = expOnStack e1 + expOnStack e2
 

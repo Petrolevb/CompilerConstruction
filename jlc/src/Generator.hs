@@ -74,6 +74,7 @@ genTopDef (TYP.FnDef typeFn ident args block) = do
     put saveEnv
 
 genBlock :: AnnotatedBlock -> GenState ()
+genBlock (AnnotatedBlock []) = returnCode "ireturn\n"
 genBlock (AnnotatedBlock stmts) = mapM_ genStmt stmts
 
 genStmt :: AnnotatedStmt -> GenState ()
@@ -437,10 +438,15 @@ genDecl :: Type -> [AnnotatedItem] -> GenState ()
 genDecl t = mapM_  (genItem t)
     where 
         genItem t (TYP.NoInit ident)    = do
-            env <- get
-            put $ addVar env (t, ident)
+            case t of 
+                Int  -> returnCode "ldc 0\n"
+                Bool -> returnCode "iconst_0\n" 
+                Doub -> returnCode "ldc2_w 0.0\n"
+            addNewVar t ident
         genItem t (TYP.Init ident exp)  = do
             genExp exp
+            addNewVar t ident
+        addNewVar t ident= do
             env <- get
             put $ addVar env (t, ident)
             env <- get
