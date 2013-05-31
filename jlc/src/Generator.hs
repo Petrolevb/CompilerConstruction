@@ -75,7 +75,12 @@ genTopDef (TYP.FnDef typeFn ident args block) = do
 
 genBlock :: AnnotatedBlock -> GenState ()
 genBlock (AnnotatedBlock []) = returnCode "ireturn\n"
-genBlock (AnnotatedBlock stmts) = mapM_ genStmt stmts
+genBlock (AnnotatedBlock stmts) = do
+    env <- get
+    put $ stackVar env
+    mapM_ genStmt stmts
+    env <- get
+    put $ popVar env
 
 genStmt :: AnnotatedStmt -> GenState ()
 genStmt TYP.Empty                 = returnCode ""

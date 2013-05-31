@@ -6,10 +6,10 @@ import AbsJavalette as ABS
 
 -- Context = (NameCurrentFunction, CounterLabel, [Variables, memory], [StackLabel], FileName)
 type GenContext = (Ident, Integer, MapVars, [String], FilePath)
-type MapVars = [(Type, Ident, Int)]
+type MapVars = [[(Type, Ident, Int)]]
 
 newMap :: MapVars
-newMap = []
+newMap = [[]]
 
 newContext :: String -> GenContext
 newContext fileName = ((Ident ""), 0, newMap, [], fileName)
@@ -21,12 +21,25 @@ getMemory :: GenContext -> Ident -> (Type, Int)
 getMemory (_, _, mv, _, _) = getVar mv
 
 getVar :: MapVars -> Ident -> (Type, Int)
-getVar ((t, id, i):maps) search | id == search = (t, i)
-                                | otherwise = getVar maps search
+getVar (map:stack) search  | snd $ lookAt map search = fst $ lookAt map search
+                           | otherwise  = getVar stack search
+
+lookAt :: [(Type, Ident, Int)] -> Ident -> ((Type, Int), Bool)
+lookAt ((t, id, i):maps) search | id == search = ((t, i), True)
+                                | otherwise    = lookAt maps search
+lookAt [] _ = ((Void, 0), False)
 
 addVar :: GenContext -> (Type, Ident) -> GenContext
 addVar (id, c, mv, st, fn) (typ, ident) = (id, c, (addInMv mv typ ident), st, fn)
-    where addInMv mv t i = mv ++ [(t, i, (length mv))]
+    where addInMv mv t i = ((t, i, sizeMv mv) : head mv) : drop 1 mv
+          sizeMv mv = sum $ map length mv
+
+stackVar :: GenContext -> GenContext
+stackVar (id, c, mv, st, fn) = (id, c, []:mv, st, fn)
+
+popVar :: GenContext -> GenContext
+popVar (id, c, (m:mv), st, fn) = (id, c, mv, st, fn)
+
 
 getNameFunc :: GenContext -> String
 getNameFunc ((Ident func), _, _, _, _) = func
@@ -62,7 +75,8 @@ addArgs (f, c, mv, st, fn) args = (f, c, (mapArgs mv 0 args), st, fn)
 
 mapArgs :: MapVars -> Int -> [Arg] -> MapVars
 mapArgs mv _ [] = mv
-mapArgs mv i ((Arg typeA ident):args) = mapArgs (mv ++ [(typeA, ident, i)]) (i+1) args
+mapArgs mv i ((Arg typeA ident):args) = mapArgs (addOnTop : (drop 1 mv)) (i+1) args
+  where addOnTop = (head mv) ++ [(typeA, ident, i)]
 
 newArgs :: GenContext -> GenContext
 newArgs (f, c, mv, st, fn) = (f, c, newMap, st, fn)
